@@ -9,7 +9,7 @@ dictionary1 = {"Название": names_books, "Aвтор": authors_books, "Р�
 
 
 names_films = ["Зверополис", "Поезд в Пусан"]
-types_films = ["Мультфильм", ["Ужасы", "Боевик"]]
+types_films = [["Мультфильм"], ["Ужасы", "Боевик"]]
 rating_films = [8.3, 7.2]
 years_films = ["2016", "2016"]
 links_films = ["https://www.kinopoisk.ru/film/775276/", "https://www.kinopoisk.ru/film/977288/"]
