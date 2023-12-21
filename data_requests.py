@@ -1,6 +1,20 @@
 import pandas as pd
 import numpy as np
 from datetime import datetime
+import matplotlib.pyplot as plt
+import io
+from PIL import Image
+
+
+def dataframe_to_image(dataframe):
+    buffer = io.BytesIO()
+    dataframe.to_image().save(buffer, format='PNG')
+    buffer.seek(0)
+    image = Image.open(buffer)
+    image_bytes = io.BytesIO()
+    image.save(image_bytes, format='PNG')
+    image_bytes.seek(0)
+    return image_bytes
 
 
 def calories_norma(sex, age, height, weight):
@@ -49,16 +63,9 @@ def add_note(user_id, note_name, note_text):
 
 def get_all_user_notes(user_id):
     csv_data = pd.read_csv("notes.csv")
-    res_data = list()
-    for index, row in csv_data.iterrows():
-        if row['user_id'] == str(user_id):
-            cur = list()
-            cur.append(row['note_num'])
-            cur.append(row['note_date'])
-            cur.append(row['note_name'])
-            res_data.append(cur)
-
-    return res_data
+    csv_data = csv_data[csv_data['user_id'] == user_id]
+    csv_data.drop('note_text', axis=1, inplace=True)
+    return dataframe_to_image(csv_data)
 
 
 def get_note_by_number(user_id, note_number):
