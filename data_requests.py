@@ -1,20 +1,9 @@
+from io import BytesIO
+
 import pandas as pd
 import numpy as np
 from datetime import datetime
-import matplotlib.pyplot as plt
-import io
-from PIL import Image
-
-
-def dataframe_to_image(dataframe):
-    buffer = io.BytesIO()
-    dataframe.to_image().save(buffer, format='PNG')
-    buffer.seek(0)
-    image = Image.open(buffer)
-    image_bytes = io.BytesIO()
-    image.save(image_bytes, format='PNG')
-    image_bytes.seek(0)
-    return image_bytes
+import dataframe_image as dfi
 
 
 def calories_norma(sex, age, height, weight):
@@ -63,9 +52,15 @@ def add_note(user_id, note_name, note_text):
 
 def get_all_user_notes(user_id):
     csv_data = pd.read_csv("notes.csv")
-    csv_data = csv_data[csv_data['user_id'] == user_id]
+    csv_data = csv_data[csv_data['user_id'] == str(user_id)]
     csv_data.drop('note_text', axis=1, inplace=True)
-    return dataframe_to_image(csv_data)
+    csv_data.drop('user_id', axis=1, inplace=True)
+    new_column_names = {'note_num': 'Номер', 'note_date': 'Дата создания', 'note_name': 'Название записи'}
+    df = csv_data.rename(columns=new_column_names).reset_index(drop=True)
+    df_styled = df.style.set_properties(**{'text-align': 'center'}).hide()
+    buf = BytesIO()
+    dfi.export(df_styled, buf)
+    return buf
 
 
 def get_note_by_number(user_id, note_number):
@@ -76,10 +71,7 @@ def get_note_by_number(user_id, note_number):
             user_data[row['note_num']] = row['note_text']
 
     if note_number > len(user_data):
-        if len(user_data):
-            res = "Записи с таким номером не существует"
-        else:
-            res = "У Вас нет записей"
+        res = ''
     else:
         res = user_data[note_number]
 
@@ -88,12 +80,21 @@ def get_note_by_number(user_id, note_number):
 
 def clean_all_user_notes(user_id):
     csv_data = pd.read_csv("notes.csv")
-    csv_data = csv_data[csv_data['user_id'] != user_id]
+    csv_data = csv_data[csv_data['user_id'] != str(user_id)]
     csv_data.to_csv("notes.csv", index=False)
 
 
 def delete_note_by_number(user_id, note_number):
-    ...
+    csv_data = pd.read_csv("notes.csv")
+    csv_copy = csv_data[(csv_data['user_id'] == str(user_id)) & (csv_data['note_num'] == note_number)]
+    if len(csv_copy):
+        csv_data = csv_data.drop(csv_copy.index)
+        csv_data.loc[
+            (csv_data['user_id'] == str(user_id)) & (csv_data['note_num'] > note_number), 'note_num'] -= 1
+        csv_data.to_csv("notes.csv", index=False)
+        return True
+    else:
+        return False
 
 
 def request(type, argc, argv):
