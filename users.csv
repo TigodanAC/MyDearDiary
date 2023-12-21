@@ -1,5 +1,5 @@
-user_id,height,weight,calories_norma
-1A,180,90,1500
-2B,161,50,750
-3C,174,65,100
-4D,193,100,2000
+user_id,sex,height,weight,calories_norma
+1A,m,180,90,1500
+2B,f,161,50,750
+3C,f,174,65,100
+4D,m,193,100,2000
