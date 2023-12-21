@@ -12,9 +12,8 @@ def calories_norma(sex, age, height, weight):
 
 def is_user_exist(user_id):
     csv_data = pd.read_csv("users.csv")
-    csv_copy = csv_data.copy()
-    for index, row in csv_copy.iterrows():
-        if row['user_id'] == user_id:
+    for index, row in csv_data.iterrows():
+        if row['user_id'] == str(user_id):
             return True
     return False
 
@@ -22,6 +21,9 @@ def is_user_exist(user_id):
 def add_user(user_id, sex, age, height, weight):
     if not is_user_exist(user_id):
         csv_data = pd.read_csv("users.csv")
+        age = int(age)
+        height = float(height)
+        weight = float(weight)
         calories_count = calories_norma(sex, age, height, weight)
         new_row = {'user_id': user_id, 'sex': sex, 'age': age, 'height': height, 'weight': weight,
                    'calories_norma': calories_count}
@@ -39,5 +41,3 @@ def request(type, argc, argv):
     elif type == 'PUT':
         if argc == 6 and argv[0] == 'user':
             add_user(argv[1], argv[2], argv[3], argv[4], argv[5])
-
-
