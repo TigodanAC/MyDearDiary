@@ -2,6 +2,7 @@ import requests
 import pandas as pd
 from bs4 import BeautifulSoup
 
+numbers = []
 names = []
 calories = []
 proteins = []
@@ -34,6 +35,7 @@ for url in urls:
     soup = BeautifulSoup(response.text, 'lxml')
     quotes = soup.find('tbody').find_all('tr')
     for i in range(0, len(quotes)):
+        numbers.append(i+1)
         quotes1 = quotes[i].find('a').text
         names.append(quotes1)
         quotes2 = quotes[i].find_all('td', class_='uk-text-right')
@@ -42,7 +44,7 @@ for url in urls:
         fats.append(float(quotes2[2].text.replace(",", ".").split()[0]))
         carbohydrates.append(float(quotes2[3].text.replace(",", ".").split()[0]))
 
-dictionary = {"Названия": names, "Калорийность": calories, "Белки": proteins, "Жиры": fats, "Углеводы": carbohydrates }
+dictionary = {"id_meals": numbers, "meals_names": names, "calories": calories, "proteins": proteins, "fats": fats, "carbohydrates": carbohydrates }
 
 df = pd.DataFrame(dictionary)
 df.to_csv('dishes.csv', index=False)
