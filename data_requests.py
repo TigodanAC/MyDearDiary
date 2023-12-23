@@ -94,11 +94,10 @@ def delete_note_by_number(user_id, note_number):
             (csv_data['user_id'] == str(user_id)) & (csv_data['note_num'] > note_number), 'note_num'] -= 1
         csv_data.to_csv("notes.csv", index=False)
         return True
-    else:
-        return False
+    return False
 
 
-def add_dish_list(user_id, list_title, dish_names):
+def add_dish_list(user_id, list_title, dish_numbers):
     csv_data = pd.read_csv("wishlist_dishes.csv")
     csv_copy = csv_data.copy()
     list_num = 1
@@ -107,10 +106,10 @@ def add_dish_list(user_id, list_title, dish_names):
             list_num += 1
     dishes_dict = {}
     csv_dishes = pd.read_csv("dishes.csv")
-    for dish in dish_names:
+    for num in dish_numbers:
         for index, row in csv_dishes.iterrows():
-            if row['meals_names'] == str(dish):
-                dishes_dict[row['id_meals']] = str(dish)
+            if str(row['id_meals']) == str(num):
+                dishes_dict[row['id_meals']] = row['meals_names']
                 break
     if len(dishes_dict):
         new_row = {'user_id': user_id, 'list_dish_number': str(list_num), 'list_dish_title': list_title,
@@ -173,18 +172,18 @@ def add_film_list(user_id, list_title, film_names):
     return False
 
 
-def add_in_dish_list_by_number(user_id, list_number, dish_names):
+def add_in_dish_list_by_number(user_id, list_number, dish_numbers):
     csv_data = pd.read_csv("wishlist_dishes.csv")
     csv_dishes = pd.read_csv("dishes.csv")
     flag = False
     for index, row in csv_data.iterrows():
         if row['user_id'] == str(user_id) and str(row['list_dish_number']) == str(list_number):
+            flag = True
             dishes_dict = eval(row['list_dish_names'])
-            for dish in dish_names:
+            for num in dish_numbers:
                 for idx, r in csv_dishes.iterrows():
-                    if r['meals_names'] == str(dish):
-                        flag = True
-                        dishes_dict[r['id_meals']] = str(dish)
+                    if str(r['id_meals']) == str(num):
+                        dishes_dict[r['id_meals']] = r['meals_names']
                         break
             csv_data.at[index, 'list_dish_names'] = str(dishes_dict)
     csv_data.to_csv("wishlist_dishes.csv", index=False)
@@ -192,18 +191,18 @@ def add_in_dish_list_by_number(user_id, list_number, dish_names):
 
 
 # Непонятно, что делать в случае нескольких списков с одним названием"
-def add_in_dish_list_by_title(user_id, list_title, dish_names):
+def add_in_dish_list_by_title(user_id, list_title, dish_numbers):
     csv_data = pd.read_csv("wishlist_dishes.csv")
     csv_dishes = pd.read_csv("dishes.csv")
     flag = False
     for index, row in csv_data.iterrows():
         if row['user_id'] == str(user_id) and row['list_dish_title'] == str(list_title):
+            flag = True
             dishes_dict = eval(row['list_dish_names'])
-            for dish in dish_names:
+            for num in dish_numbers:
                 for idx, r in csv_dishes.iterrows():
-                    if r['meals_names'] == str(dish):
-                        flag = True
-                        dishes_dict[r['id_meals']] = str(dish)
+                    if str(r['id_meals']) == str(num):
+                        dishes_dict[r['id_meals']] = r['meals_names']
                         break
             csv_data.at[index, 'list_dish_names'] = str(dishes_dict)
     csv_data.to_csv("wishlist_dishes.csv", index=False)
@@ -236,37 +235,43 @@ def delete_dish_list_by_title(user_id, list_title):
     if list_num_to_update is not None:
         for index, row in csv_data.iterrows():
             if row['user_id'] == str(user_id) and int(row['list_dish_number']) > list_num_to_update:
-                csv_data.at[index, 'list_dish_number'] = int(row['list_dish_number']) - 1  # Cast to int
+                csv_data.at[index, 'list_dish_number'] = int(row['list_dish_number']) - 1
         csv_data.to_csv("wishlist_dishes.csv", index=False)
         return True
     return False
 
 
-def delete_in_dish_list_by_number(user_id, list_number, dish_names):
+def delete_in_dish_list_by_number(user_id, list_number, dish_numbers):
     csv_data = pd.read_csv("wishlist_dishes.csv")
+    flag = False
     for index, row in csv_data.iterrows():
         if row['user_id'] == str(user_id) and str(row['list_dish_number']) == str(list_number):
+            flag = True
             dishes_dict = eval(row['list_dish_names'])
-            for dish in dish_names:
+            for num in dish_numbers:
                 for key, value in list(dishes_dict.items()):
-                    if value == dish:
+                    if str(key) == str(num):
                         del dishes_dict[key]
             csv_data.at[index, 'list_dish_names'] = str(dishes_dict)
     csv_data.to_csv("wishlist_dishes.csv", index=False)
+    return flag
 
 
 # Непонятно, что делать в случае нескольких списков с одним названием"
-def delete_in_dish_list_by_title(user_id, list_title, dish_names):
+def delete_in_dish_list_by_title(user_id, list_title, dish_numbers):
     csv_data = pd.read_csv("wishlist_dishes.csv")
+    flag = False
     for index, row in csv_data.iterrows():
         if row['user_id'] == str(user_id) and row['list_dish_title'] == str(list_title):
+            flag = True
             dishes_dict = eval(row['list_dish_names'])
-            for dish in dish_names:
+            for num in dish_numbers:
                 for key, value in list(dishes_dict.items()):
-                    if value == dish:
+                    if str(key) == str(num):
                         del dishes_dict[key]
             csv_data.at[index, 'list_dish_names'] = str(dishes_dict)
     csv_data.to_csv("wishlist_dishes.csv", index=False)
+    return flag
 
 
 def clean_all_user_dish_lists(user_id):
@@ -296,7 +301,7 @@ def get_dish_list_by_number(user_id, list_number):
             dishes_dict = ast.literal_eval(row['list_dish_names'])
             dishes_list = [dishes_dict[key] for key in dishes_dict]
             break
-    return dishes_list
+    return ', '.join(dishes_list)
 
 
 # Непонятно, что делать в случае нескольких списков с одним названием"
@@ -308,7 +313,7 @@ def get_dish_list_by_title(user_id, list_title):
             dishes_dict = ast.literal_eval(row['list_dish_names'])
             dishes_list = [dishes_dict[key] for key in dishes_dict]
             break
-    return dishes_list
+    return ', '.join(dishes_list)
 
 
 def request(type, argc, argv):
@@ -325,7 +330,7 @@ def request(type, argc, argv):
         elif argc == 2 and argv[0] == 'dish_list':
             return get_all_user_dish_lists(argv[1])
 
-        elif argc == 3 and argv[0] == 'dish_list_n':
+        elif argc == 3 and argv[0] == 'dish_list':
             return get_dish_list_by_number(argv[1], argv[2])
 
         elif argc == 3 and argv[0] == 'dish_list_t':
@@ -350,7 +355,7 @@ def request(type, argc, argv):
         elif argc == 4 and argv[0] == 'film_list':
             add_film_list(argv[1], argv[2], argv[3])
 
-        elif argc == 4 and argv[0] == 'dish_list_n':
+        elif argc == 4 and argv[0] == 'dish_list_add':
             add_in_dish_list_by_number(argv[1], argv[2], argv[3])
 
         elif argc == 4 and argv[0] == 'dish_list_t':
@@ -369,13 +374,13 @@ def request(type, argc, argv):
         elif argc == 2 and argv[0] == 'dish_list':
             return clean_all_user_dish_lists(argv[1])
 
-        elif argc == 3 and argv[0] == 'dish_list_n':
+        elif argc == 3 and argv[0] == 'dish_list':
             delete_dish_list_by_number(argv[1], argv[2])
 
         elif argc == 3 and argv[0] == 'dish_list_t':
             delete_dish_list_by_title(argv[1], argv[2])
 
-        elif argc == 4 and argv[0] == 'dish_list_n':
+        elif argc == 4 and argv[0] == 'dish_list':
             delete_in_dish_list_by_number(argv[1], argv[2], argv[3])
 
         elif argc == 4 and argv[0] == 'dish_list_t':
