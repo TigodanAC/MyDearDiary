@@ -347,44 +347,46 @@ def request(type, argc, argv):
             add_note(argv[1], argv[2], argv[3])
 
         elif argc == 4 and argv[0] == 'dish_list':
-            add_dish_list(argv[1], argv[2], argv[3])
+            return add_dish_list(argv[1], argv[2], argv[3])
 
         elif argc == 4 and argv[0] == 'book_list':
-            add_book_list(argv[1], argv[2], argv[3])
+            return add_book_list(argv[1], argv[2], argv[3])
 
         elif argc == 4 and argv[0] == 'film_list':
-            add_film_list(argv[1], argv[2], argv[3])
+            return add_film_list(argv[1], argv[2], argv[3])
 
         elif argc == 4 and argv[0] == 'dish_list_add':
-            add_in_dish_list_by_number(argv[1], argv[2], argv[3])
+            return add_in_dish_list_by_number(argv[1], argv[2], argv[3])
 
         elif argc == 4 and argv[0] == 'dish_list_t':
-            add_in_dish_list_by_title(argv[1], argv[2], argv[3])
+            return add_in_dish_list_by_title(argv[1], argv[2], argv[3])
+
+        # elif argc == 3 and argv[0] == ''
 
         else:
             print("No such PUT request")
 
     elif type == 'DELETE':
         if argc == 2 and argv[0] == 'note':
-            return clean_all_user_notes(argv[1])
+            clean_all_user_notes(argv[1])
 
         elif argc == 3 and argv[0] == 'note':
             return delete_note_by_number(argv[1], argv[2])
 
         elif argc == 2 and argv[0] == 'dish_list':
-            return clean_all_user_dish_lists(argv[1])
+            clean_all_user_dish_lists(argv[1])
 
         elif argc == 3 and argv[0] == 'dish_list':
-            delete_dish_list_by_number(argv[1], argv[2])
+            return delete_dish_list_by_number(argv[1], argv[2])
 
         elif argc == 3 and argv[0] == 'dish_list_t':
-            delete_dish_list_by_title(argv[1], argv[2])
+            return delete_dish_list_by_title(argv[1], argv[2])
 
         elif argc == 4 and argv[0] == 'dish_list':
-            delete_in_dish_list_by_number(argv[1], argv[2], argv[3])
+            return delete_in_dish_list_by_number(argv[1], argv[2], argv[3])
 
         elif argc == 4 and argv[0] == 'dish_list_t':
-            delete_in_dish_list_by_title(argv[1], argv[2], argv[3])
+            return delete_in_dish_list_by_title(argv[1], argv[2], argv[3])
 
         else:
             print("No such DELETE request")
