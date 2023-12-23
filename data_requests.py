@@ -276,7 +276,7 @@ def delete_in_dish_list_by_title(user_id, list_title, dish_numbers):
 
 def clean_all_user_dish_lists(user_id):
     csv_data = pd.read_csv("wishlist_dishes.csv")
-    csv_data = csv_data[csv_data['user_id'] != user_id]
+    csv_data = csv_data[csv_data['user_id'] != str(user_id)]
     csv_data.to_csv("wishlist_dishes.csv", index=False)
 
 
@@ -297,11 +297,14 @@ def get_dish_list_by_number(user_id, list_number):
     csv_data = pd.read_csv("wishlist_dishes.csv")
     dishes_list = []
     for index, row in csv_data.iterrows():
-        if row['user_id'] == user_id and int(row['list_dish_number']) == list_number:
+        if row['user_id'] == str(user_id) and int(row['list_dish_number']) == list_number:
             dishes_dict = ast.literal_eval(row['list_dish_names'])
             dishes_list = [dishes_dict[key] for key in dishes_dict]
-            break
-    return ', '.join(dishes_list)
+            if dishes_list:
+                return '\n'.join(dishes_list)
+            else:
+                return 'Список пуст('
+    return False
 
 
 # Непонятно, что делать в случае нескольких списков с одним названием"
