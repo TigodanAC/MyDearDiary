@@ -1,6 +1,7 @@
 import ast
 from io import BytesIO
-
+from random import random
+import random
 import pandas as pd
 import numpy as np
 from datetime import datetime
@@ -319,6 +320,104 @@ def get_dish_list_by_title(user_id, list_title):
     return ', '.join(dishes_list)
 
 
+def add_user_dish(user_id, a, b, c, d):
+    csv_calories = pd.read_csv("calories.csv")
+    user_row = csv_calories[csv_calories['user_id'] == str(user_id)]
+    if not user_row.empty:
+        user_index = user_row.index[0]
+        csv_calories.at[user_index, 'today_count_calories'] = float(
+            user_row['today_count_calories'].iloc[0]) + a
+        csv_calories.at[user_index, 'today_count_proteins'] = float(
+            user_row['today_count_proteins'].iloc[0]) + b
+        csv_calories.at[user_index, 'today_count_fats'] = float(user_row['today_count_fats'].iloc[0]) + c
+        csv_calories.at[user_index, 'today_count_carbohydrates'] = float(
+            user_row['today_count_carbohydrates'].iloc[0]) + d
+    else:
+        new_row = {'user_id': user_id, 'today_count_calories': a,
+                   'today_count_proteins': b,
+                   'today_count_fats': c,
+                   'today_count_carbohydrates': d,
+                   'recent_week_info': [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0],
+                                        [0, 0, 0, 0], [0, 0, 0, 0]]}
+        new_data = pd.DataFrame([new_row])
+        if not csv_calories.empty:
+            csv_calories = pd.concat([csv_calories, new_data], ignore_index=True, join='inner')
+        else:
+            csv_calories = new_data
+    csv_calories = csv_calories.round(2)
+    csv_calories[
+        ['user_id', 'today_count_calories', 'today_count_proteins', 'today_count_fats', 'today_count_carbohydrates',
+         'recent_week_info']].to_csv(
+        "calories.csv", index=False)
+
+
+def add_dish_to_eaten(user_id, dish_number):
+    csv_calories = pd.read_csv("calories.csv")
+    csv_dishes = pd.read_csv("dishes.csv")
+    flag = False
+    for index, row in csv_dishes.iterrows():
+        if str(row['id_meals']) == str(dish_number):
+            flag = True
+            add_user_dish(user_id, row['calories'], row['proteins'], row['fats'], row['carbohydrates'])
+    return flag
+
+
+def add_dish_list_to_eaten(user_id, dish_list):
+    csv_data = pd.read_csv("calories.csv")
+    csv_dishes = pd.read_csv("dishes.csv")
+    flag = False
+    for dish in dish_list:
+        for index, row in csv_dishes.iterrows():
+            if str(row['id_meals']) == str(dish):
+                flag = True
+                add_user_dish(user_id, row['calories'], row['proteins'], row['fats'], row['carbohydrates'])
+    return flag
+
+
+def get_random_dishes():
+    csv_dishes = pd.read_csv("dishes.csv")
+    random_rows = random.sample(range(len(csv_dishes)), 30)
+    need_df = csv_dishes.iloc[random_rows]
+    print(need_df)
+    new_column_names = {'id_meals': 'Номер', 'meals_names': 'Название блюда', 'calories': 'Число калорий',
+                        'proteins': 'Число белков', 'fats': 'Число жиров', 'carbohydrates': 'Число углеводов'}
+    df = need_df.rename(columns=new_column_names).reset_index(drop=True)
+    df_styled = df.style.set_properties(**{'text-align': 'center'}).hide()
+    buf = BytesIO()
+    dfi.export(df_styled, buf)
+    return buf
+
+
+def get_certain_dishes_by_words(words):
+    csv_data = pd.read_csv("dishes.csv")
+    words = words.replace(",", " ")
+    word_list = words.split()
+    dishes_list = pd.DataFrame(columns=['id_meals', 'meals_names', 'calories', 'proteins', 'fats', 'carbohydrates'])
+    for index, row in csv_data.iterrows():
+        counter = 0
+        for word in word_list:
+            if word in row['meals_names']:
+                counter += 1
+        if counter == len(word_list):
+            for word in word_list:
+                new_data = pd.DataFrame([row])
+                if dishes_list.empty:
+                    dishes_list = new_data
+                else:
+                    dishes_list = pd.concat([dishes_list, new_data], ignore_index=True)
+    dishes_list = dishes_list.drop_duplicates()
+    if len(dishes_list) > 50:
+        dishes_list = dishes_list.head(50)
+    print(dishes_list)
+    new_column_names = {'id_meals': 'Номер', 'meals_names': 'Название блюда', 'calories': 'Число калорий',
+                        'proteins': 'Число белков', 'fats': 'Число жиров', 'carbohydrates': 'Число углеводов'}
+    df = dishes_list.rename(columns=new_column_names).reset_index(drop=True)
+    df_styled = df.style.set_properties(**{'text-align': 'center'}).hide()
+    buf = BytesIO()
+    dfi.export(df_styled, buf)
+    return buf
+
+
 def request(type, argc, argv):
     if type == 'GET':
         if argc == 2 and argv[0] == 'user':
@@ -338,6 +437,12 @@ def request(type, argc, argv):
 
         elif argc == 3 and argv[0] == 'dish_list_t':
             return get_dish_list_by_title(argv[1], argv[2])
+
+        elif argc == 1 and argv[0] == 'dishes':
+            return get_random_dishes()
+
+        elif argc == 2 and argv[0] == 'dishes':
+            return get_certain_dishes_by_words(argv[1])
 
         else:
             print("No such GET request")
@@ -364,7 +469,11 @@ def request(type, argc, argv):
         elif argc == 4 and argv[0] == 'dish_list_t':
             return add_in_dish_list_by_title(argv[1], argv[2], argv[3])
 
-        # elif argc == 3 and argv[0] == ''
+        elif argc == 3 and argv[0] == 'calories':
+            return add_dish_to_eaten(argv[1], argv[2])
+
+        elif argc == 3 and argv[0] == 'calories_list':
+            return add_dish_list_to_eaten(argv[1], argv[2])
 
         else:
             print("No such PUT request")
