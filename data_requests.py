@@ -263,7 +263,7 @@ def delete_in_dish_list_by_number(user_id, list_number, dish_numbers):
     return flag
 
 
-# Непонятно, что делать в случае нескольких списков с одним названием"
+# Непонятно, что делать в случае нескольких списков с одним названием
 def delete_in_dish_list_by_title(user_id, list_title, dish_numbers):
     csv_data = pd.read_csv("wishlist_dishes.csv")
     flag = False
@@ -313,7 +313,7 @@ def get_dish_list_by_number(user_id, list_number):
     return False
 
 
-# Непонятно, что делать в случае нескольких списков с одним названием"
+# Непонятно, что делать в случае нескольких списков с одним названием
 def get_dish_list_by_title(user_id, list_title):
     csv_data = pd.read_csv("wishlist_dishes.csv")
     dishes_list = []
@@ -367,8 +367,16 @@ def add_dishes_to_eaten(user_id, dishes):
     return flag
 
 
-def add_dish_list_to_eaten(user_id, dish_list):
-    ...
+def add_dish_list_to_eaten(user_id, dish_list_number):
+    csv_dishes = pd.read_csv("wishlist_dishes.csv")
+    csv_lists = csv_dishes[csv_dishes['user_id'] == str(user_id)]
+    flag = False
+    for index, row in csv_lists.iterrows():
+        if str(row['list_dish_number']) == str(dish_list_number):
+            flag = True
+            for key in eval(row['list_dish_names']):
+                add_dishes_to_eaten(user_id, [key])
+    return flag
 
 
 def get_random_dishes():
