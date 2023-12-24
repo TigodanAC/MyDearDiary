@@ -1,11 +1,14 @@
 ﻿import telebot
 from telebot import types
 import re
+import threading
 from data_requests import request
 
 TOKEN = '6662823857:AAERFYvIoJGWreU7_y80R_USjUlWghILRFM'
 
 bot = telebot.TeleBot(TOKEN)
+lock = threading.Lock()
+
 regex_pattern = r'^(m|f)\s+(\d+)\s+(\d+(\.\d+)?)\s+(\d+(\.\d+)?)$'
 last_messages = {}
 note_names = {}
@@ -14,13 +17,13 @@ list_names = {}
 
 @bot.message_handler(commands=['start'])
 def hello_message(message):
-    if request('GET', 2, ['user', message.from_user.id]):
+    if request('GET', 2, ['user', message.from_user.id], lock):
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True,
                                            row_width=3)
         item_1 = types.KeyboardButton(text="Дневник")
         item_2 = types.KeyboardButton(text="Досуг")
         item_3 = types.KeyboardButton(text="Счётчик калорий")
-        markup.add(item_1, item_2, item_3)
+        markup.add(item_1, item_3)
         bot.send_message(message.chat.id, "И снова здравствуй!", reply_markup=markup)
     else:
         bot.send_message(message.chat.id,
@@ -46,14 +49,14 @@ def message_reply(message):
     elif re.match(regex_pattern, message.text):
         argv = ['user', message.from_user.id]
         argv += message.text.split()
-        request("PUT", len(argv), argv)
+        request("PUT", len(argv), argv, lock)
 
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True,
                                            row_width=3)
         item_1 = types.KeyboardButton(text="Дневник")
         item_2 = types.KeyboardButton(text="Досуг")
         item_3 = types.KeyboardButton(text="Счётчик калорий")
-        markup.add(item_1, item_2, item_3)
+        markup.add(item_1, item_3)
         bot.send_message(message.chat.id, "Что тебя интересует?", reply_markup=markup)
 
     elif message.text == "Дневник" or message.text == "К дневнику":
@@ -62,7 +65,7 @@ def message_reply(message):
         if note_names.get(message.chat.id):
             del note_names[message.chat.id]
 
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=6)
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=3)
         item_1 = types.KeyboardButton(text="Вывести все записи")
         item_2 = types.KeyboardButton(text="Удалить все записи")
         item_3 = types.KeyboardButton(text="Добавить запись")
@@ -75,12 +78,12 @@ def message_reply(message):
 
     elif message.text == "Вывести все записи":
         argv = ['note', message.from_user.id]
-        table = request("GET", len(argv), argv)
+        table = request("GET", len(argv), argv, lock)
         bot.send_photo(message.chat.id, photo=table.getvalue())
 
     elif message.text == "Удалить все записи":
         argv = ['note', message.from_user.id]
-        request("DELETE", len(argv), argv)
+        request("DELETE", len(argv), argv, lock)
         bot.send_message(message.chat.id, "Записи успешно удалены!")
 
     elif message.text == "Добавить запись":
@@ -96,7 +99,7 @@ def message_reply(message):
         bot.send_message(message.chat.id, "Введите номер записи")
 
     # elif message.text == "Досуг":
-    #     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=5)
+    #     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=3)
     #     item_1 = types.KeyboardButton(text="Найти фильм")
     #     item_2 = types.KeyboardButton(text="Найти сериал")
     #     item_3 = types.KeyboardButton(text="Найти книгу")
@@ -105,12 +108,54 @@ def message_reply(message):
     #     markup.add(item_1, item_2, item_3, item_4, item_5)
     #     bot.send_message(message.chat.id, "Я к Вашим услугам!", reply_markup=markup)
     #
-    elif message.text == "Счётчик калорий":
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-        item_1 = types.KeyboardButton(text="Списки блюд")
-        item_5 = types.KeyboardButton(text="В начало")
-        markup.add(item_1, item_5)
+    elif message.text == "Счётчик калорий" or message.text == "К счётчику калорий":
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=3)
+        item_1 = types.KeyboardButton(text="Случайные блюда (Мне повезёт!)")
+        item_2 = types.KeyboardButton(text="Найти блюда")
+        item_3 = types.KeyboardButton(text="Узнать состав блюда")
+        item_4 = types.KeyboardButton(text="Добавить блюда в съеденное")
+        item_5 = types.KeyboardButton(text="Добавить список блюд в съеденное")
+        item_6 = types.KeyboardButton(text="Закончить день")
+        item_7 = types.KeyboardButton(text="Мои показатели за последние 7 дней")
+        item_8 = types.KeyboardButton(text="Списки блюд")
+        item_9 = types.KeyboardButton(text="В начало")
+        markup.add(item_1, item_2, item_3, item_4, item_5, item_6, item_7, item_8, item_9)
         bot.send_message(message.chat.id, "Я к Вашим услугам!", reply_markup=markup)
+
+    elif message.text == "Случайные блюда (Мне повезёт!)":
+        argv = ['dishes']
+        table = request("GET", len(argv), argv, lock)
+        bot.send_photo(message.chat.id, photo=table.getvalue())
+
+    elif message.text == "Найти блюда":
+        last_messages[message.chat.id] = 'find'
+        bot.send_message(message.chat.id, "Введите ключевые слова, по которым хотите искать блюда, через запятую.\n"
+                                          "Например: Курица, жаренная, с луком")
+
+    elif message.text == "Узнать состав блюда":
+        last_messages[message.chat.id] = 'info'
+        bot.send_message(message.chat.id, "Введите номер блюда, про которое хотите узнать")
+
+    elif message.text == "Добавить блюда в съеденное":
+        last_messages[message.chat.id] = 'add_dishes'
+        bot.send_message(message.chat.id, "Введите номер блюда, которое хотите добавить")
+
+    elif message.text == "Добавить список блюд в съеденное":
+        last_messages[message.chat.id] = 'add_list'
+        bot.send_message(message.chat.id, "Введите номер списка, который хотите добавить")
+
+    elif message.text == "Закончить день":
+        argv = ['calories', message.from_user.id]
+        bot.send_message(message.chat.id, request("PUT", len(argv), argv), lock)
+
+    elif message.text == "Мои показатели за последние 7 дней":
+        argv = ['plot', message.from_user.id]
+        table = request("GET", len(argv), argv, lock)
+        if table:
+            bot.send_photo(message.chat.id, photo=table.getvalue())
+        else:
+            bot.send_message(message.chat.id, 'Добавь что-нибудь в "Съеденное" впервые, чтобы '
+                                              'начать вести учёт калорий по дням!')
 
     elif message.text == "Списки блюд" or message.text == "К спискам блюд":
         if last_messages.get(message.chat.id):
@@ -118,7 +163,7 @@ def message_reply(message):
         if list_names.get(message.chat.id):
             del list_names[message.chat.id]
 
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=8)
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=3)
         item_1 = types.KeyboardButton(text="Вывести все списки")
         item_2 = types.KeyboardButton(text="Удалить все списки")
         item_3 = types.KeyboardButton(text="Создать список")
@@ -126,18 +171,19 @@ def message_reply(message):
         item_5 = types.KeyboardButton(text="Прочесть список")
         item_6 = types.KeyboardButton(text="Удалить из списка")
         item_7 = types.KeyboardButton(text="Удалить список")
-        item_8 = types.KeyboardButton(text="В начало")
-        markup.add(item_1, item_2, item_3, item_4, item_5, item_6, item_7, item_8)
+        item_8 = types.KeyboardButton(text="К счётчику калорий")
+        item_9 = types.KeyboardButton(text="В начало")
+        markup.add(item_1, item_2, item_3, item_4, item_5, item_6, item_7, item_8, item_9)
         bot.send_message(message.chat.id, "Я к Вашим услугам!", reply_markup=markup)
 
     elif message.text == "Вывести все списки":
         argv = ['dish_list', message.from_user.id]
-        table = request("GET", len(argv), argv)
+        table = request("GET", len(argv), argv, lock)
         bot.send_photo(message.chat.id, photo=table.getvalue())
 
     elif message.text == "Удалить все списки":
         argv = ['dish_list', message.from_user.id]
-        request("DELETE", len(argv), argv)
+        request("DELETE", len(argv), argv, lock)
         bot.send_message(message.chat.id, "Списки успешно удалены!")
 
     elif message.text == "Создать список":
@@ -173,7 +219,7 @@ def message_reply(message):
         del last_messages[message.chat.id]
         name = note_names.pop(message.chat.id)
         argv = ['note', message.from_user.id, name, message.text]
-        request("PUT", len(argv), argv)
+        request("PUT", len(argv), argv, lock)
 
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
         item_1 = types.KeyboardButton(text="К дневнику")
@@ -192,7 +238,7 @@ def message_reply(message):
 
         if message.text.isdigit():
             argv = ['note', message.from_user.id, int(message.text)]
-            text = request("GET", len(argv), argv)
+            text = request("GET", len(argv), argv, lock)
             if text:
                 del last_messages[message.chat.id]
                 bot.send_message(message.chat.id, text, reply_markup=markup_good)
@@ -212,11 +258,76 @@ def message_reply(message):
 
         if message.text.isdigit():
             argv = ['note', message.from_user.id, int(message.text)]
-            if request("DELETE", len(argv), argv):
+            if request("DELETE", len(argv), argv, lock):
                 del last_messages[message.chat.id]
                 bot.send_message(message.chat.id, "Ваша запись успешно удалена!", reply_markup=markup_good)
             else:
                 bot.send_message(message.chat.id, "Записи с таким номером не существует", reply_markup=markup_bad)
+        else:
+            bot.send_message(message.chat.id, "Неверный формат номера", reply_markup=markup_bad)
+
+    elif last_messages.get(message.chat.id) == 'find':
+        del last_messages[message.chat.id]
+        argv = ['dishes', message.text]
+        table = request("GET", len(argv), argv, lock)
+
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+        item_1 = types.KeyboardButton(text="К счётчику калорий")
+        item_2 = types.KeyboardButton(text="В начало")
+        markup.add(item_1, item_2)
+        bot.send_photo(message.chat.id, photo=table.getvalue(), reply_markup=markup)
+
+    elif last_messages.get(message.chat.id) == 'info':
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+        item_1 = types.KeyboardButton(text="К счётчику калорий")
+        item_2 = types.KeyboardButton(text="В начало")
+        markup.add(item_1, item_2)
+
+        if message.text.isdigit():
+            argv = ['dish', int(message.text)]
+            text = request("GET", len(argv), argv, lock)
+            if text:
+                del last_messages[message.chat.id]
+                bot.send_message(message.chat.id, text, reply_markup=markup)
+            else:
+                bot.send_message(message.chat.id, "Блюда с таким номером не существует", reply_markup=markup)
+        else:
+            bot.send_message(message.chat.id, "Неверный формат номера", reply_markup=markup)
+
+    elif last_messages.get(message.chat.id) == 'add_dishes':
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+        item_1 = types.KeyboardButton(text="К счётчику калорий")
+        item_2 = types.KeyboardButton(text="В начало")
+        markup.add(item_1, item_2)
+
+        ids = message.text.replace(',', ' ').split()
+        for id in ids:
+            if not id.isdigit():
+                bot.send_message(message.chat.id, "Неверный формат", reply_markup=markup)
+
+        argv = ['calories', message.from_user.id, ids]
+        if request("PUT", len(argv), argv, lock):
+            del last_messages[message.chat.id]
+            bot.send_message(message.chat.id, "Блюда успешно добавлены!", reply_markup=markup)
+        else:
+            bot.send_message(message.chat.id, "Блюд с такими номерами не существует", reply_markup=markup)
+
+    elif last_messages.get(message.chat.id) == 'add_list':
+        markup_good = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+        markup_bad = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+        item_1 = types.KeyboardButton(text="К счётчику калорий")
+        item_2 = types.KeyboardButton(text="В начало")
+        item_3 = types.KeyboardButton(text="Вывести все списки")
+        markup_good.add(item_1, item_2)
+        markup_bad.add(item_3, item_1)
+
+        if message.text.isdigit():
+            argv = ['calories_list', message.from_user.id, int(message.text)]
+            if request("PUT", len(argv), argv, lock):
+                del last_messages[message.chat.id]
+                bot.send_message(message.chat.id, "Список успешно добавлен!", reply_markup=markup_good)
+            else:
+                bot.send_message(message.chat.id, "Списка с таким номером не существует", reply_markup=markup_bad)
         else:
             bot.send_message(message.chat.id, "Неверный формат номера", reply_markup=markup_bad)
 
@@ -245,7 +356,7 @@ def message_reply(message):
                 bot.send_message(message.chat.id, "Неверный формат", reply_markup=markup)
 
         argv = ['dish_list', message.from_user.id, name, ids]
-        if request("PUT", len(argv), argv):
+        if request("PUT", len(argv), argv, lock):
             bot.send_message(message.chat.id, "Список успешно создан!", reply_markup=markup)
         else:
             bot.send_message(message.chat.id, "Ошибка при создании списка!", reply_markup=markup)
@@ -278,7 +389,7 @@ def message_reply(message):
                 bot.send_message(message.chat.id, "Неверный формат", reply_markup=markup)
 
         argv = ['dish_list_add', message.from_user.id, name, ids]
-        if request("PUT", len(argv), argv):
+        if request("PUT", len(argv), argv, lock):
             bot.send_message(message.chat.id, "Блюда успешно добавлены!", reply_markup=markup)
         else:
             bot.send_message(message.chat.id, "Ошибка при добавлении в список!", reply_markup=markup)
@@ -294,7 +405,7 @@ def message_reply(message):
 
         if message.text.isdigit():
             argv = ['dish_list', message.from_user.id, int(message.text)]
-            text = request("GET", len(argv), argv)
+            text = request("GET", len(argv), argv, lock)
             if text:
                 del last_messages[message.chat.id]
                 bot.send_message(message.chat.id, text, reply_markup=markup_good)
@@ -331,7 +442,7 @@ def message_reply(message):
                 bot.send_message(message.chat.id, "Неверный формат", reply_markup=markup)
 
         argv = ['dish_list', message.from_user.id, name, ids]
-        if request("DELETE", len(argv), argv):
+        if request("DELETE", len(argv), argv, lock):
             bot.send_message(message.chat.id, "Блюда успешно удалены", reply_markup=markup)
         else:
             bot.send_message(message.chat.id, "Ошибка при удалении из списка!", reply_markup=markup)
@@ -347,7 +458,7 @@ def message_reply(message):
 
         if message.text.isdigit():
             argv = ['dish_list', message.from_user.id, int(message.text)]
-            if request("DELETE", len(argv), argv):
+            if request("DELETE", len(argv), argv, lock):
                 del last_messages[message.chat.id]
                 bot.send_message(message.chat.id, "Ваш список успешно удален!", reply_markup=markup_good)
             else:

@@ -1,5 +1,4 @@
 import ast
-import base64
 import io
 import json
 from collections import deque
@@ -11,6 +10,7 @@ import numpy as np
 from datetime import datetime
 import dataframe_image as dfi
 from matplotlib import pyplot as plt
+import threading
 
 
 def calories_norma(sex, age, height, weight):
@@ -356,22 +356,10 @@ def add_user_dish(user_id, a, b, c, d):
         "calories.csv", index=False)
 
 
-def add_dish_to_eaten(user_id, dish_number):
-    csv_calories = pd.read_csv("calories.csv")
+def add_dishes_to_eaten(user_id, dishes):
     csv_dishes = pd.read_csv("dishes.csv")
     flag = False
-    for index, row in csv_dishes.iterrows():
-        if str(row['id_meals']) == str(dish_number):
-            flag = True
-            add_user_dish(user_id, row['calories'], row['proteins'], row['fats'], row['carbohydrates'])
-    return flag
-
-
-def add_dish_list_to_eaten(user_id, dish_list):
-    csv_data = pd.read_csv("calories.csv")
-    csv_dishes = pd.read_csv("dishes.csv")
-    flag = False
-    for dish in dish_list:
+    for dish in dishes:
         for index, row in csv_dishes.iterrows():
             if str(row['id_meals']) == str(dish):
                 flag = True
@@ -379,9 +367,13 @@ def add_dish_list_to_eaten(user_id, dish_list):
     return flag
 
 
+def add_dish_list_to_eaten(user_id, dish_list):
+    ...
+
+
 def get_random_dishes():
     csv_dishes = pd.read_csv("dishes.csv")
-    random_rows = random.sample(range(len(csv_dishes)), 30)
+    random_rows = random.sample(range(len(csv_dishes)), 10)
     need_df = csv_dishes.iloc[random_rows]
     new_column_names = {'id_meals': 'Номер', 'meals_names': 'Название блюда', 'calories': 'Число калорий',
                         'proteins': 'Число белков', 'fats': 'Число жиров', 'carbohydrates': 'Число углеводов'}
@@ -478,7 +470,7 @@ def show_recent_week_statistic(user_id):
         line = json.loads(user_row['recent_week_info'].iloc[0])
         output_list = [[round(float(num), 2) for num in sublist] for sublist in line]
         transformed_list = [[lst[i] for lst in output_list] for i in range(4)]
-        plt.figure(figsize=(10, 6))
+        plt.figure(figsize=(12, 7))
         plt.plot(range(1, 8), transformed_list[0], label='Калории')
         plt.plot(range(1, 8), transformed_list[1], 'g', label='Белки')
         plt.plot(range(1, 8), transformed_list[2], 'r', label='Жиры')
@@ -494,14 +486,12 @@ def show_recent_week_statistic(user_id):
                    ['7 дней назад', '6 дней назад', '5 дней назад', '4 дня назад', '3 дня назад', '2 дня назад',
                     '1 день назад'], fontstyle='italic', rotation=15)
         plt.legend(loc='upper right')
-        plt.grid(True)
         buffer = io.BytesIO()
-        plt.savefig(buffer, format='png')
+        plt.savefig(buffer, format='jpg')
         buffer.seek(0)
-        image_data = base64.b64encode(buffer.read()).decode()
-        return image_data
+        return buffer
     else:
-        return 'Добавь что-нибудь в "Съеденное" впервые, чтобы начать вести учёт калорий по дням!'
+        return False
 
 
 def find_films_by_tags(tags):
@@ -534,99 +524,77 @@ def find_films_by_tags(tags):
     return buf
 
 
-def request(type, argc, argv):
+def request(type, argc, argv, lock):
+    result = False
     if type == 'GET':
         if argc == 2 and argv[0] == 'user':
-            return is_user_exist(argv[1])
-
+            result = is_user_exist(argv[1])
         elif argc == 2 and argv[0] == 'note':
-            return get_all_user_notes(argv[1])
-
+            result = get_all_user_notes(argv[1])
         elif argc == 3 and argv[0] == 'note':
-            return get_note_by_number(argv[1], argv[2])
-
+            result = get_note_by_number(argv[1], argv[2])
         elif argc == 2 and argv[0] == 'dish_list':
-            return get_all_user_dish_lists(argv[1])
-
+            result = get_all_user_dish_lists(argv[1])
         elif argc == 3 and argv[0] == 'dish_list':
-            return get_dish_list_by_number(argv[1], argv[2])
-
+            result = get_dish_list_by_number(argv[1], argv[2])
         elif argc == 3 and argv[0] == 'dish_list_t':
-            return get_dish_list_by_title(argv[1], argv[2])
-
+            result = get_dish_list_by_title(argv[1], argv[2])
         elif argc == 1 and argv[0] == 'dishes':
-            return get_random_dishes()
-
+            result = get_random_dishes()
         elif argc == 2 and argv[0] == 'dishes':
-            return get_certain_dishes_by_words(argv[1])
-
+            result = get_certain_dishes_by_words(argv[1])
         elif argc == 2 and argv[0] == 'dish':
-            return get_dish_info(argv[1])
-
+            result = get_dish_info(argv[1])
         elif argc == 2 and argv[0] == 'plot':
-            return show_recent_week_statistic(argv[1])
-
+            result = show_recent_week_statistic(argv[1])
         elif argc == 2 and argv[0] == 'film':
-            return find_films_by_tags(argv[1])
-
+            result = find_films_by_tags(argv[1])
         else:
             print("No such GET request")
-
     elif type == 'PUT':
+        lock.acquire()
         if argc == 6 and argv[0] == 'user':
             add_user(argv[1], argv[2], argv[3], argv[4], argv[5])
-
         elif argc == 4 and argv[0] == 'note':
             add_note(argv[1], argv[2], argv[3])
-
         elif argc == 4 and argv[0] == 'dish_list':
-            return add_dish_list(argv[1], argv[2], argv[3])
-
+            result = add_dish_list(argv[1], argv[2], argv[3])
         elif argc == 4 and argv[0] == 'book_list':
-            return add_book_list(argv[1], argv[2], argv[3])
-
+            result = add_book_list(argv[1], argv[2], argv[3])
         elif argc == 4 and argv[0] == 'film_list':
-            return add_film_list(argv[1], argv[2], argv[3])
-
+            result = add_film_list(argv[1], argv[2], argv[3])
         elif argc == 4 and argv[0] == 'dish_list_add':
-            return add_in_dish_list_by_number(argv[1], argv[2], argv[3])
-
+            result = add_in_dish_list_by_number(argv[1], argv[2], argv[3])
         elif argc == 4 and argv[0] == 'dish_list_t':
-            return add_in_dish_list_by_title(argv[1], argv[2], argv[3])
-
+            result = add_in_dish_list_by_title(argv[1], argv[2], argv[3])
         elif argc == 3 and argv[0] == 'calories':
-            return add_dish_to_eaten(argv[1], argv[2])
-
+            result = add_dishes_to_eaten(argv[1], argv[2])
         elif argc == 3 and argv[0] == 'calories_list':
-            return add_dish_list_to_eaten(argv[1], argv[2])
-
+            result = add_dish_list_to_eaten(argv[1], argv[2])
         elif argc == 2 and argv[0] == 'calories':
-            return finish_day(argv[1])
-
+            result = finish_day(argv[1])
         else:
             print("No such PUT request")
-
+        lock.release()
     elif type == 'DELETE':
+        lock.acquire()
         if argc == 2 and argv[0] == 'note':
             clean_all_user_notes(argv[1])
-
         elif argc == 3 and argv[0] == 'note':
-            return delete_note_by_number(argv[1], argv[2])
-
+            result = delete_note_by_number(argv[1], argv[2])
         elif argc == 2 and argv[0] == 'dish_list':
             clean_all_user_dish_lists(argv[1])
-
         elif argc == 3 and argv[0] == 'dish_list':
-            return delete_dish_list_by_number(argv[1], argv[2])
-
+            result = delete_dish_list_by_number(argv[1], argv[2])
         elif argc == 3 and argv[0] == 'dish_list_t':
-            return delete_dish_list_by_title(argv[1], argv[2])
-
+            result = delete_dish_list_by_title(argv[1], argv[2])
         elif argc == 4 and argv[0] == 'dish_list':
-            return delete_in_dish_list_by_number(argv[1], argv[2], argv[3])
-
+            result = delete_in_dish_list_by_number(argv[1], argv[2], argv[3])
         elif argc == 4 and argv[0] == 'dish_list_t':
-            return delete_in_dish_list_by_title(argv[1], argv[2], argv[3])
-
+            result = delete_in_dish_list_by_title(argv[1], argv[2], argv[3])
         else:
             print("No such DELETE request")
+        lock.release()
+    else:
+        print("No such request's type")
+    return result
