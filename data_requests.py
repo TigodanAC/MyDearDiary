@@ -1,4 +1,8 @@
 import ast
+import base64
+import io
+import json
+from collections import deque
 from io import BytesIO
 from random import random
 import random
@@ -6,6 +10,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime
 import dataframe_image as dfi
+from matplotlib import pyplot as plt
 
 
 def calories_norma(sex, age, height, weight):
@@ -378,7 +383,6 @@ def get_random_dishes():
     csv_dishes = pd.read_csv("dishes.csv")
     random_rows = random.sample(range(len(csv_dishes)), 30)
     need_df = csv_dishes.iloc[random_rows]
-    print(need_df)
     new_column_names = {'id_meals': 'Номер', 'meals_names': 'Название блюда', 'calories': 'Число калорий',
                         'proteins': 'Число белков', 'fats': 'Число жиров', 'carbohydrates': 'Число углеводов'}
     df = need_df.rename(columns=new_column_names).reset_index(drop=True)
@@ -392,26 +396,138 @@ def get_certain_dishes_by_words(words):
     csv_data = pd.read_csv("dishes.csv")
     words = words.replace(",", " ")
     word_list = words.split()
+    word_list = [word.lower() for word in word_list]
     dishes_list = pd.DataFrame(columns=['id_meals', 'meals_names', 'calories', 'proteins', 'fats', 'carbohydrates'])
     for index, row in csv_data.iterrows():
         counter = 0
         for word in word_list:
-            if word in row['meals_names']:
+            if word in row['meals_names'].lower():
                 counter += 1
         if counter == len(word_list):
-            for word in word_list:
-                new_data = pd.DataFrame([row])
-                if dishes_list.empty:
-                    dishes_list = new_data
-                else:
-                    dishes_list = pd.concat([dishes_list, new_data], ignore_index=True)
-    dishes_list = dishes_list.drop_duplicates()
+            new_data = pd.DataFrame([row])
+            if dishes_list.empty:
+                dishes_list = new_data
+            else:
+                dishes_list = pd.concat([dishes_list, new_data], ignore_index=True)
     if len(dishes_list) > 50:
         dishes_list = dishes_list.head(50)
-    print(dishes_list)
     new_column_names = {'id_meals': 'Номер', 'meals_names': 'Название блюда', 'calories': 'Число калорий',
                         'proteins': 'Число белков', 'fats': 'Число жиров', 'carbohydrates': 'Число углеводов'}
     df = dishes_list.rename(columns=new_column_names).reset_index(drop=True)
+    df_styled = df.style.set_properties(**{'text-align': 'center'}).hide()
+    buf = BytesIO()
+    dfi.export(df_styled, buf)
+    return buf
+
+
+def get_dish_info(dish_number):
+    csv_data = pd.read_csv("dishes.csv")
+    for index, row in csv_data.iterrows():
+        if str(row['id_meals']) == str(dish_number):
+            name = 'Название: ' + str(row['meals_names'])
+            calories = 'Калорийность: ' + str(row['calories'])
+            proteins = 'Белки: ' + str(row['proteins'])
+            fats = 'Жиры: ' + str(row['fats'])
+            carbohydrates = 'Углеводы: ' + str(row['carbohydrates'])
+            info = [name, calories, proteins, fats, carbohydrates]
+            return '\n'.join(info)
+
+
+def finish_day(user_id):
+    csv_calories = pd.read_csv("calories.csv")
+    csv_users = pd.read_csv("users.csv")
+    user_row_one = csv_users[csv_users['user_id'] == str(user_id)]
+    if is_user_exist(user_id):
+        user_row_one = csv_users[csv_users['user_id'] == str(user_id)].iloc[0]
+    user_row = csv_calories[csv_calories['user_id'] == str(user_id)]
+    if not user_row.empty:
+        user_index = user_row.index[0]
+        remember = user_row['today_count_calories']
+        today_info = [round(float(user_row[col].iloc[0]), 2) for col in
+                      ['today_count_calories', 'today_count_proteins', 'today_count_fats', 'today_count_carbohydrates']]
+
+        csv_calories.at[user_index, 'today_count_calories'] = 0
+        csv_calories.at[user_index, 'today_count_proteins'] = 0
+        csv_calories.at[user_index, 'today_count_fats'] = 0
+        csv_calories.at[user_index, 'today_count_carbohydrates'] = 0
+        line = json.loads(user_row['recent_week_info'].iloc[0])
+        output_list = [[round(float(num), 2) for num in sublist] for sublist in line]
+        day_queue = deque(output_list)
+        day_queue.popleft()
+        day_queue.append(today_info)
+        csv_calories.at[user_index, 'recent_week_info'] = str(list(day_queue))
+        if is_user_exist(user_id):
+            res = 'Сегодня ты потребил ' + str(remember.iloc[0]) + ' ккал при суточной норме ' + str(
+                user_row_one['calories_norma']) + ' ккал'
+        else:
+            res = 'Сегодня ты потребил ' + str(remember.iloc[
+                                                   0]) + ' ккал. Добавься в качетсве пользователя, чтобы я рассчитал твою суточную норму калорий. Тогда ты сможешь увидеть отклонение от суточной нормы!'
+    else:
+        res = 'Добавь что-нибудь в "Съеденное" впервые, чтобы начать вести учёт калорий по дням!'
+    csv_calories[
+        ['user_id', 'today_count_calories', 'today_count_proteins', 'today_count_fats', 'today_count_carbohydrates',
+         'recent_week_info']].to_csv("calories.csv", index=False)
+    return res
+
+
+def show_recent_week_statistic(user_id):
+    csv_calories = pd.read_csv("calories.csv")
+    csv_users = pd.read_csv("users.csv")
+    user_row = csv_calories[csv_calories['user_id'] == str(user_id)]
+    if not user_row.empty:
+        line = json.loads(user_row['recent_week_info'].iloc[0])
+        output_list = [[round(float(num), 2) for num in sublist] for sublist in line]
+        transformed_list = [[lst[i] for lst in output_list] for i in range(4)]
+        plt.figure(figsize=(10, 6))
+        plt.plot(range(1, 8), transformed_list[0], label='Калории')
+        plt.plot(range(1, 8), transformed_list[1], 'g', label='Белки')
+        plt.plot(range(1, 8), transformed_list[2], 'r', label='Жиры')
+        plt.plot(range(1, 8), transformed_list[3], 'orange', label='Углеводы')
+        if is_user_exist(user_id):
+            user_row_one = csv_users[csv_users['user_id'] == str(user_id)].iloc[0]
+            plt.axhline(y=float(user_row_one['calories_norma']), color='c', linestyle='--',
+                        label='Суточная норма калорий')
+        plt.xlabel('Дни', fontweight='bold', fontsize=11)
+        plt.ylabel('Количество', fontweight='bold', fontsize=11)
+        plt.title('Питание за последнюю неделю', fontweight='bold', fontsize=15)
+        plt.xticks(range(1, 8),
+                   ['7 дней назад', '6 дней назад', '5 дней назад', '4 дня назад', '3 дня назад', '2 дня назад',
+                    '1 день назад'], fontstyle='italic', rotation=15)
+        plt.legend(loc='upper right')
+        plt.grid(True)
+        buffer = io.BytesIO()
+        plt.savefig(buffer, format='png')
+        buffer.seek(0)
+        image_data = base64.b64encode(buffer.read()).decode()
+        return image_data
+    else:
+        return 'Добавь что-нибудь в "Съеденное" впервые, чтобы начать вести учёт калорий по дням!'
+
+
+def find_films_by_tags(tags):
+    csv_data = pd.read_csv("micro_films.csv")
+    tags = tags.replace(",", " ")
+    word_list = tags.split()
+    word_list = [word.lower() for word in word_list]
+    film_list = pd.DataFrame(columns=['names_films', 'types_film', 'rating_films', 'years_films'])
+    for index, row in csv_data.iterrows():
+        counter = 0
+        for tag in word_list:
+            if tag in row['types_film'].lower():
+                counter += 1
+        if counter == len(word_list):
+            new_data = pd.DataFrame([row])
+            new_data.drop('id_films', axis=1, inplace=True)
+            new_data.drop('links_films', axis=1, inplace=True)
+            if film_list.empty:
+                film_list = new_data
+            else:
+                film_list = pd.concat([film_list, new_data], ignore_index=True)
+    if len(film_list) > 50:
+        film_list = film_list.head(50)
+    new_column_names = {'names_films': 'Название', 'types_film': 'Жанры', 'rating_films': 'Рейтинг',
+                        'years_films': 'Год выпуска'}
+    df = film_list.rename(columns=new_column_names).reset_index(drop=True)
     df_styled = df.style.set_properties(**{'text-align': 'center'}).hide()
     buf = BytesIO()
     dfi.export(df_styled, buf)
@@ -444,6 +560,15 @@ def request(type, argc, argv):
         elif argc == 2 and argv[0] == 'dishes':
             return get_certain_dishes_by_words(argv[1])
 
+        elif argc == 2 and argv[0] == 'dish':
+            return get_dish_info(argv[1])
+
+        elif argc == 2 and argv[0] == 'plot':
+            return show_recent_week_statistic(argv[1])
+
+        elif argc == 2 and argv[0] == 'film':
+            return find_films_by_tags(argv[1])
+
         else:
             print("No such GET request")
 
@@ -474,6 +599,9 @@ def request(type, argc, argv):
 
         elif argc == 3 and argv[0] == 'calories_list':
             return add_dish_list_to_eaten(argv[1], argv[2])
+
+        elif argc == 2 and argv[0] == 'calories':
+            return finish_day(argv[1])
 
         else:
             print("No such PUT request")
