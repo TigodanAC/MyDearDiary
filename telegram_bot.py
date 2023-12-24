@@ -78,8 +78,8 @@ def message_reply(message):
 
     elif message.text == "Вывести все записи":
         argv = ['note', message.from_user.id]
-        table = request("GET", len(argv), argv, lock)
-        bot.send_photo(message.chat.id, photo=table.getvalue())
+        image = request("GET", len(argv), argv, lock)
+        bot.send_photo(message.chat.id, photo=image.getvalue())
 
     elif message.text == "Удалить все записи":
         argv = ['note', message.from_user.id]
@@ -124,8 +124,8 @@ def message_reply(message):
 
     elif message.text == "Случайные блюда (Мне повезёт!)":
         argv = ['dishes']
-        table = request("GET", len(argv), argv, lock)
-        bot.send_photo(message.chat.id, photo=table.getvalue())
+        image = request("GET", len(argv), argv, lock)
+        bot.send_photo(message.chat.id, photo=image.getvalue())
 
     elif message.text == "Найти блюда":
         last_messages[message.chat.id] = 'find'
@@ -150,9 +150,9 @@ def message_reply(message):
 
     elif message.text == "Мои показатели за последние 7 дней":
         argv = ['plot', message.from_user.id]
-        table = request("GET", len(argv), argv, lock)
-        if table:
-            bot.send_photo(message.chat.id, photo=table.getvalue())
+        image = request("GET", len(argv), argv, lock)
+        if image:
+            bot.send_photo(message.chat.id, photo=image.getvalue())
         else:
             bot.send_message(message.chat.id, 'Добавь что-нибудь в "Съеденное" впервые, чтобы '
                                               'начать вести учёт калорий по дням!')
@@ -178,8 +178,8 @@ def message_reply(message):
 
     elif message.text == "Вывести все списки":
         argv = ['dish_list', message.from_user.id]
-        table = request("GET", len(argv), argv, lock)
-        bot.send_photo(message.chat.id, photo=table.getvalue())
+        image = request("GET", len(argv), argv, lock)
+        bot.send_photo(message.chat.id, photo=image.getvalue())
 
     elif message.text == "Удалить все списки":
         argv = ['dish_list', message.from_user.id]
@@ -269,13 +269,23 @@ def message_reply(message):
     elif last_messages.get(message.chat.id) == 'find':
         del last_messages[message.chat.id]
         argv = ['dishes', message.text]
-        table = request("GET", len(argv), argv, lock)
+        image = request("GET", len(argv), argv, lock)
 
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
         item_1 = types.KeyboardButton(text="К счётчику калорий")
         item_2 = types.KeyboardButton(text="В начало")
         markup.add(item_1, item_2)
-        bot.send_photo(message.chat.id, photo=table.getvalue(), reply_markup=markup)
+        if image:
+            bot.send_photo(message.chat.id, photo=image.getvalue(), reply_markup=markup)
+        elif message.text.lower() == "попугай" or message.text.lower() == "попуг":
+            bot.send_message(message.chat.id, "Попугаев нельзя есть, их надо любить!")
+            with open('parrot.jpg', 'rb') as parrot:
+                bot.send_photo(message.chat.id, photo=parrot, reply_markup=markup)
+        else:
+            bot.send_message(message.chat.id, "К сожалению, по Вашему запросу ничего не найдено, "
+                                              "но полюбуйтесь на котёнка")
+            with open('chipi-chapa.gif', 'rb') as gif:
+                bot.send_animation(message.chat.id, animation=gif, reply_markup=markup)
 
     elif last_messages.get(message.chat.id) == 'info':
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
@@ -465,6 +475,10 @@ def message_reply(message):
                 bot.send_message(message.chat.id, "Списка с таким номером не существует", reply_markup=markup_bad)
         else:
             bot.send_message(message.chat.id, "Неверный формат номера", reply_markup=markup_bad)
+
+    elif message.text == "Чипи Чипи Чапа Чапа":
+        with open('chipi-chapa.gif', 'rb') as gif:
+            bot.send_animation(message.chat.id, animation=gif)
 
     else:
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)

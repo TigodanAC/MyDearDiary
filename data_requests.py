@@ -403,6 +403,8 @@ def get_certain_dishes_by_words(words):
                 dishes_list = pd.concat([dishes_list, new_data], ignore_index=True)
     if len(dishes_list) > 50:
         dishes_list = dishes_list.head(50)
+    if dishes_list.empty:
+        return False
     new_column_names = {'id_meals': 'Номер', 'meals_names': 'Название блюда', 'calories': 'Число калорий',
                         'proteins': 'Число белков', 'fats': 'Число жиров', 'carbohydrates': 'Число углеводов'}
     df = dishes_list.rename(columns=new_column_names).reset_index(drop=True)
@@ -515,6 +517,8 @@ def find_films_by_tags(tags):
                 film_list = pd.concat([film_list, new_data], ignore_index=True)
     if len(film_list) > 50:
         film_list = film_list.head(50)
+    if film_list.empty:
+        return False
     new_column_names = {'names_films': 'Название', 'types_film': 'Жанры', 'rating_films': 'Рейтинг',
                         'years_films': 'Год выпуска'}
     df = film_list.rename(columns=new_column_names).reset_index(drop=True)
