@@ -1,4 +1,6 @@
 import ast
+import json
+from collections import deque
 from io import BytesIO
 from random import random
 import random
@@ -418,6 +420,56 @@ def get_certain_dishes_by_words(words):
     return buf
 
 
+def get_dish_info(dish_number):
+    csv_data = pd.read_csv("dishes.csv")
+    for index, row in csv_data.iterrows():
+        if str(row['id_meals']) == str(dish_number):
+            name = 'Название: ' + str(row['meals_names'])
+            calories = 'Калорийность: ' + str(row['calories'])
+            proteins = 'Белки: ' + str(row['proteins'])
+            fats = 'Жиры: ' + str(row['fats'])
+            carbohydrates = 'Углеводы: ' + str(row['carbohydrates'])
+            info = [name, calories, proteins, fats, carbohydrates]
+            return '\n'.join(info)
+
+
+def finish_day(user_id):
+    csv_calories = pd.read_csv("calories.csv")
+    csv_users = pd.read_csv("users.csv")
+    user_row_one = csv_users[csv_users['user_id'] == str(user_id)]
+    if is_user_exist(user_id):
+        user_row_one = csv_users[csv_users['user_id'] == str(user_id)].iloc[0]
+    user_row = csv_calories[csv_calories['user_id'] == str(user_id)]
+    if not user_row.empty:
+        user_index = user_row.index[0]
+        remember = user_row['today_count_calories']
+        today_info = [round(float(user_row[col].iloc[0]), 2) for col in
+                      ['today_count_calories', 'today_count_proteins', 'today_count_fats', 'today_count_carbohydrates']]
+
+        csv_calories.at[user_index, 'today_count_calories'] = 0
+        csv_calories.at[user_index, 'today_count_proteins'] = 0
+        csv_calories.at[user_index, 'today_count_fats'] = 0
+        csv_calories.at[user_index, 'today_count_carbohydrates'] = 0
+        line = json.loads(user_row['recent_week_info'].iloc[0])
+        output_list = [[round(float(num), 2) for num in sublist] for sublist in line]
+        day_queue = deque(output_list)
+        day_queue.popleft()
+        day_queue.append(today_info)
+        csv_calories.at[user_index, 'recent_week_info'] = str(list(day_queue))
+        if is_user_exist(user_id):
+            res = 'Сегодня ты потребил ' + str(remember.iloc[0]) + ' ккал при суточной норме ' + str(
+                user_row_one['calories_norma']) + ' ккал'
+        else:
+            res = 'Сегодня ты потребил ' + str(remember.iloc[
+                                                   0]) + ' ккал. Добавься в качетсве пользователя, чтобы я рассчитал твою суточную норму калорий. Тогда ты сможешь увидеть отклонение от суточной нормы!'
+    else:
+        res = 'Добавь что-нибудь в "Съеденное" впервые, чтобы начать вести учёт калорий по дням!'
+    csv_calories[
+        ['user_id', 'today_count_calories', 'today_count_proteins', 'today_count_fats', 'today_count_carbohydrates',
+         'recent_week_info']].to_csv("calories.csv", index=False)
+    return res
+
+
 def request(type, argc, argv):
     if type == 'GET':
         if argc == 2 and argv[0] == 'user':
@@ -444,6 +496,8 @@ def request(type, argc, argv):
         elif argc == 2 and argv[0] == 'dishes':
             return get_certain_dishes_by_words(argv[1])
 
+        elif argc == 2 and argv[0] == 'dish':
+            return get_dish_info(argv[1])
         else:
             print("No such GET request")
 
@@ -474,6 +528,9 @@ def request(type, argc, argv):
 
         elif argc == 3 and argv[0] == 'calories_list':
             return add_dish_list_to_eaten(argv[1], argv[2])
+
+        elif argc == 2 and argv[0] == 'calories':
+            return finish_day(argv[1])
 
         else:
             print("No such PUT request")
