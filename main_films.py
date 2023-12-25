@@ -12,14 +12,19 @@ links_films = []
 soup = BeautifulSoup(requests.get('https://baskino.org/films/').text, 'lxml')
 quotes = soup.find('div', class_='navigation ignore-select').find_all('a')[-2].text
 pages_size = int(quotes)
-for j in (0, pages_size):
+
+for j in range(0, pages_size):
+    print(j)
     url = "https://baskino.org/films/" + "page/" + str(j)
     response = requests.get(url)
     soup = BeautifulSoup(response.text, 'lxml')
     name_link_year = soup.find_all('div', class_='posttitle') # тут у нас ссылка и название и год
     ratings = soup.find_all('li', class_='current-rating') # тут рейтинг 
     for i in range(0, len(name_link_year)):
-        name, year = name_link_year[i].text.replace(")", "").replace("\n", "").split("(")
+        try: 
+            name, year = name_link_year[i].text.replace(")", "").replace("\n", "").split("(")
+        except ValueError: 
+            continue
         rating = ratings[i].text
         link = str(name_link_year[i].find("a")).split(">")[0].split("=")[1][1:-1]
         response1 = requests.get(link)
@@ -31,6 +36,7 @@ for j in (0, pages_size):
             if k1[0] == "Жанр":
                 types_film.append(k1[1])
                 flag = 1
+                break
         if flag == 0:
             continue
         names_films.append(name)

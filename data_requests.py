@@ -128,56 +128,6 @@ def add_dish_list(user_id, list_title, dish_numbers):
     return False
 
 
-def add_book_list(user_id, list_title, book_names):
-    csv_data = pd.read_csv("wishlist_books.csv")
-    csv_copy = csv_data.copy()
-    list_num = 1
-    for index, row in csv_copy.iterrows():
-        if row['user_id'] == str(user_id):
-            list_num += 1
-    books_dict = {}
-    csv_books = pd.read_csv("micro_books.csv")
-    for book in book_names:
-        for index, row in csv_books.iterrows():
-            if row['names_books'] == str(book):
-                books_dict[row['authors_books']] = str(book)
-                break
-    if len(books_dict):
-        new_row = {'user_id': user_id, 'list_book_number': str(list_num), 'list_book_title': list_title,
-                   'list_book_names': books_dict}
-        new_data = pd.DataFrame([new_row])
-        combined_data = pd.concat([csv_data, new_data], ignore_index=True)
-        combined_data[['user_id', 'list_book_number', 'list_book_title', 'list_book_names']].to_csv(
-            "wishlist_books.csv", index=False)
-        return True
-    return False
-
-
-def add_film_list(user_id, list_title, film_names):
-    csv_data = pd.read_csv("wishlist_films.csv")
-    csv_copy = csv_data.copy()
-    list_num = 1
-    for index, row in csv_copy.iterrows():
-        if row['user_id'] == str(user_id):
-            list_num += 1
-    films_dict = {}
-    csv_films = pd.read_csv("micro_films.csv")
-    for film in film_names:
-        for index, row in csv_films.iterrows():
-            if row['names_films'] == str(film):
-                films_dict[row['years_films']] = str(film)
-                break
-    if len(films_dict):
-        new_row = {'user_id': user_id, 'list_film_number': str(list_num), 'list_film_title': list_title,
-                   'list_film_names': films_dict}
-        new_data = pd.DataFrame([new_row])
-        combined_data = pd.concat([csv_data, new_data], ignore_index=True)
-        combined_data[['user_id', 'list_film_number', 'list_film_title', 'list_film_names']].to_csv(
-            "wishlist_films.csv", index=False)
-        return True
-    return False
-
-
 def add_in_dish_list_by_number(user_id, list_number, dish_numbers):
     csv_data = pd.read_csv("wishlist_dishes.csv")
     csv_dishes = pd.read_csv("dishes.csv")
@@ -263,7 +213,7 @@ def delete_in_dish_list_by_number(user_id, list_number, dish_numbers):
     return flag
 
 
-# Непонятно, что делать в случае нескольких списков с одним названием"
+# Непонятно, что делать в случае нескольких списков с одним названием
 def delete_in_dish_list_by_title(user_id, list_title, dish_numbers):
     csv_data = pd.read_csv("wishlist_dishes.csv")
     flag = False
@@ -313,7 +263,7 @@ def get_dish_list_by_number(user_id, list_number):
     return False
 
 
-# Непонятно, что делать в случае нескольких списков с одним названием"
+# Непонятно, что делать в случае нескольких списков с одним названием
 def get_dish_list_by_title(user_id, list_title):
     csv_data = pd.read_csv("wishlist_dishes.csv")
     dishes_list = []
@@ -325,50 +275,17 @@ def get_dish_list_by_title(user_id, list_title):
     return ', '.join(dishes_list)
 
 
-def add_user_dish(user_id, a, b, c, d):
-    csv_calories = pd.read_csv("calories.csv")
-    user_row = csv_calories[csv_calories['user_id'] == str(user_id)]
-    if not user_row.empty:
-        user_index = user_row.index[0]
-        csv_calories.at[user_index, 'today_count_calories'] = float(
-            user_row['today_count_calories'].iloc[0]) + a
-        csv_calories.at[user_index, 'today_count_proteins'] = float(
-            user_row['today_count_proteins'].iloc[0]) + b
-        csv_calories.at[user_index, 'today_count_fats'] = float(user_row['today_count_fats'].iloc[0]) + c
-        csv_calories.at[user_index, 'today_count_carbohydrates'] = float(
-            user_row['today_count_carbohydrates'].iloc[0]) + d
-    else:
-        new_row = {'user_id': user_id, 'today_count_calories': a,
-                   'today_count_proteins': b,
-                   'today_count_fats': c,
-                   'today_count_carbohydrates': d,
-                   'recent_week_info': [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0],
-                                        [0, 0, 0, 0], [0, 0, 0, 0]]}
-        new_data = pd.DataFrame([new_row])
-        if not csv_calories.empty:
-            csv_calories = pd.concat([csv_calories, new_data], ignore_index=True, join='inner')
-        else:
-            csv_calories = new_data
-    csv_calories = csv_calories.round(2)
-    csv_calories[
-        ['user_id', 'today_count_calories', 'today_count_proteins', 'today_count_fats', 'today_count_carbohydrates',
-         'recent_week_info']].to_csv(
-        "calories.csv", index=False)
-
-
-def add_dishes_to_eaten(user_id, dishes):
-    csv_dishes = pd.read_csv("dishes.csv")
-    flag = False
-    for dish in dishes:
-        for index, row in csv_dishes.iterrows():
-            if str(row['id_meals']) == str(dish):
-                flag = True
-                add_user_dish(user_id, row['calories'], row['proteins'], row['fats'], row['carbohydrates'])
-    return flag
-
-
-def add_dish_list_to_eaten(user_id, dish_list):
-    ...
+def get_dish_info(dish_number):
+    csv_data = pd.read_csv("dishes.csv")
+    for index, row in csv_data.iterrows():
+        if str(row['id_meals']) == str(dish_number):
+            name = 'Название: ' + str(row['meals_names'])
+            calories = 'Калорийность: ' + str(row['calories'])
+            proteins = 'Белки: ' + str(row['proteins'])
+            fats = 'Жиры: ' + str(row['fats'])
+            carbohydrates = 'Углеводы: ' + str(row['carbohydrates'])
+            info = [name, calories, proteins, fats, carbohydrates]
+            return '\n'.join(info)
 
 
 def get_random_dishes():
@@ -414,17 +331,58 @@ def get_certain_dishes_by_words(words):
     return buf
 
 
-def get_dish_info(dish_number):
-    csv_data = pd.read_csv("dishes.csv")
-    for index, row in csv_data.iterrows():
-        if str(row['id_meals']) == str(dish_number):
-            name = 'Название: ' + str(row['meals_names'])
-            calories = 'Калорийность: ' + str(row['calories'])
-            proteins = 'Белки: ' + str(row['proteins'])
-            fats = 'Жиры: ' + str(row['fats'])
-            carbohydrates = 'Углеводы: ' + str(row['carbohydrates'])
-            info = [name, calories, proteins, fats, carbohydrates]
-            return '\n'.join(info)
+def add_user_dish(user_id, a, b, c, d):
+    csv_calories = pd.read_csv("calories.csv")
+    user_row = csv_calories[csv_calories['user_id'] == str(user_id)]
+    if not user_row.empty:
+        user_index = user_row.index[0]
+        csv_calories.at[user_index, 'today_count_calories'] = float(
+            user_row['today_count_calories'].iloc[0]) + a
+        csv_calories.at[user_index, 'today_count_proteins'] = float(
+            user_row['today_count_proteins'].iloc[0]) + b
+        csv_calories.at[user_index, 'today_count_fats'] = float(user_row['today_count_fats'].iloc[0]) + c
+        csv_calories.at[user_index, 'today_count_carbohydrates'] = float(
+            user_row['today_count_carbohydrates'].iloc[0]) + d
+    else:
+        new_row = {'user_id': user_id, 'today_count_calories': a,
+                   'today_count_proteins': b,
+                   'today_count_fats': c,
+                   'today_count_carbohydrates': d,
+                   'recent_week_info': [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0],
+                                        [0, 0, 0, 0], [0, 0, 0, 0]]}
+        new_data = pd.DataFrame([new_row])
+        if not csv_calories.empty:
+            csv_calories = pd.concat([csv_calories, new_data], ignore_index=True, join='inner')
+        else:
+            csv_calories = new_data
+    csv_calories = csv_calories.round(2)
+    csv_calories[
+        ['user_id', 'today_count_calories', 'today_count_proteins', 'today_count_fats', 'today_count_carbohydrates',
+         'recent_week_info']].to_csv(
+        "calories.csv", index=False)
+
+
+def add_dishes_to_eaten(user_id, dishes):
+    csv_dishes = pd.read_csv("dishes.csv")
+    flag = False
+    for dish in dishes:
+        for index, row in csv_dishes.iterrows():
+            if str(row['id_meals']) == str(dish):
+                flag = True
+                add_user_dish(user_id, row['calories'], row['proteins'], row['fats'], row['carbohydrates'])
+    return flag
+
+
+def add_dish_list_to_eaten(user_id, dish_list_number):
+    csv_dishes = pd.read_csv("wishlist_dishes.csv")
+    csv_lists = csv_dishes[csv_dishes['user_id'] == str(user_id)]
+    flag = False
+    for index, row in csv_lists.iterrows():
+        if str(row['list_dish_number']) == str(dish_list_number):
+            flag = True
+            for key in eval(row['list_dish_names']):
+                add_dishes_to_eaten(user_id, [key])
+    return flag
 
 
 def finish_day(user_id):
@@ -496,20 +454,129 @@ def show_recent_week_statistic(user_id):
         return False
 
 
+def add_film_list(user_id, list_title, film_names):
+    csv_data = pd.read_csv("wishlist_films.csv")
+    csv_copy = csv_data.copy()
+    csv_films = pd.read_csv("films.csv")
+    list_num = 1
+    for index, row in csv_copy.iterrows():
+        if row['user_id'] == str(user_id):
+            list_num += 1
+    films_dict = {}
+    for film in film_names:
+        for index, row in csv_films.iterrows():
+            if str(row['id_films']) == str(film):
+                films_dict[row['id_films']] = row['names_films']
+                break
+    if len(films_dict):
+        new_row = {'user_id': user_id, 'list_film_number': str(list_num), 'list_film_title': list_title,
+                   'list_film_names': films_dict}
+        new_data = pd.DataFrame([new_row])
+        combined_data = pd.concat([csv_data, new_data], ignore_index=True)
+        combined_data[['user_id', 'list_film_number', 'list_film_title', 'list_film_names']].to_csv(
+            "wishlist_films.csv", index=False)
+        return True
+    return False
+
+
+def add_in_film_list_by_number(user_id, list_number, film_numbers):
+    csv_data = pd.read_csv("wishlist_films.csv")
+    csv_films = pd.read_csv("films.csv")
+    flag = False
+    for index, row in csv_data.iterrows():
+        if row['user_id'] == str(user_id) and str(row['list_film_number']) == str(list_number):
+            flag = True
+            films_dict = eval(row['list_film_names'])
+            for num in film_numbers:
+                for idx, r in csv_films.iterrows():
+                    if str(r['id_films']) == str(num):
+                        films_dict[r['id_films']] = r['names_films']
+                        break
+            csv_data.at[index, 'list_film_names'] = str(films_dict)
+    csv_data.to_csv("wishlist_films.csv", index=False)
+    return flag
+
+
+def delete_film_list_by_number(user_id, list_number):
+    csv_data = pd.read_csv("wishlist_films.csv")
+    deleted = False
+    for index, row in csv_data.iterrows():
+        if row['user_id'] == str(user_id) and int(row['list_film_number']) == list_number:
+            csv_data = csv_data.drop(index)
+            deleted = True
+        elif deleted and row['user_id'] == str(user_id):
+            csv_data.at[index, 'list_film_number'] = int(row['list_film_number']) - 1
+    if deleted:
+        csv_data.to_csv("wishlist_films.csv", index=False)
+        return True
+    return False
+
+
+def delete_in_film_list_by_number(user_id, list_number, film_numbers):
+    csv_data = pd.read_csv("wishlist_films.csv")
+    flag = False
+    for index, row in csv_data.iterrows():
+        if row['user_id'] == str(user_id) and str(row['list_film_number']) == str(list_number):
+            flag = True
+            films_dict = eval(row['list_film_names'])
+            for num in film_numbers:
+                for key, value in list(films_dict.items()):
+                    if str(key) == str(num):
+                        del films_dict[key]
+            csv_data.at[index, 'list_film_names'] = str(films_dict)
+    csv_data.to_csv("wishlist_films.csv", index=False)
+    return flag
+
+
+def clean_all_user_film_lists(user_id):
+    csv_data = pd.read_csv("wishlist_films.csv")
+    csv_data = csv_data[csv_data['user_id'] != str(user_id)]
+    csv_data.to_csv("wishlist_films.csv", index=False)
+
+
+def get_all_user_film_lists(user_id):
+    csv_data = pd.read_csv("wishlist_films.csv")
+    csv_data = csv_data[csv_data['user_id'] == str(user_id)]
+    csv_data.drop('list_film_names', axis=1, inplace=True)
+    csv_data.drop('user_id', axis=1, inplace=True)
+    new_column_names = {'list_film_number': 'Номер', 'list_film_title': 'Название списка'}
+    df = csv_data.rename(columns=new_column_names).reset_index(drop=True)
+    df_styled = df.style.set_properties(**{'text-align': 'center'}).hide()
+    buf = BytesIO()
+    dfi.export(df_styled, buf)
+    return buf
+
+
+def get_film_list_by_number(user_id, list_number):
+    csv_data = pd.read_csv("wishlist_films.csv")
+    for index, row in csv_data.iterrows():
+        if row['user_id'] == str(user_id) and int(row['list_film_number']) == list_number:
+            films_dict = ast.literal_eval(row['list_film_names'])
+            films_list = [films_dict[key] for key in films_dict]
+            if films_list:
+
+                return '\n'.join(films_list)
+            else:
+                return 'Список пуст('
+    return False
+
+
 def find_films_by_tags(tags):
-    csv_data = pd.read_csv("micro_films.csv")
+    csv_data = pd.read_csv("films.csv")
     tags = tags.replace(",", " ")
     word_list = tags.split()
     word_list = [word.lower() for word in word_list]
     film_list = pd.DataFrame(columns=['names_films', 'types_film', 'rating_films', 'years_films'])
     for index, row in csv_data.iterrows():
+        new_row = row['types_film'].lower().replace(",", " ")
+        new_row = new_row.split()
         counter = 0
         for tag in word_list:
-            if tag in row['types_film'].lower():
-                counter += 1
+            for word in new_row:
+                if tag == word:
+                    counter += 1
         if counter == len(word_list):
             new_data = pd.DataFrame([row])
-            new_data.drop('id_films', axis=1, inplace=True)
             new_data.drop('links_films', axis=1, inplace=True)
             if film_list.empty:
                 film_list = new_data
@@ -519,13 +586,64 @@ def find_films_by_tags(tags):
         film_list = film_list.head(50)
     if film_list.empty:
         return False
-    new_column_names = {'names_films': 'Название', 'types_film': 'Жанры', 'rating_films': 'Рейтинг',
-                        'years_films': 'Год выпуска'}
+    new_column_names = {'id_films': 'Номер', 'names_films': 'Название', 'types_film': 'Жанры',
+                        'rating_films': 'Рейтинг', 'years_films': 'Год выпуска'}
     df = film_list.rename(columns=new_column_names).reset_index(drop=True)
     df_styled = df.style.set_properties(**{'text-align': 'center'}).hide()
     buf = BytesIO()
     dfi.export(df_styled, buf)
     return buf
+
+
+def get_random_films():
+    csv_data = pd.read_csv("films.csv")
+    random_rows = random.sample(range(len(csv_data)), 10)
+    need_df = csv_data.iloc[random_rows]
+    new_column_names = {'id_films': 'Номер', 'names_films': 'Название', 'types_film': 'Жанры',
+                        'rating_films': 'Рейтинг', 'years_films': 'Год выпуска'}
+    df = need_df.rename(columns=new_column_names).reset_index(drop=True)
+    df_styled = df.style.set_properties(**{'text-align': 'center'}).hide()
+    buf = BytesIO()
+    dfi.export(df_styled, buf)
+    return buf
+
+
+def get_film_info(film_number):
+    csv_data = pd.read_csv("films.csv")
+    for index, row in csv_data.iterrows():
+        if str(row['id_films']) == str(film_number):
+            name = 'Название: ' + str(row['names_films'])
+            types = 'Жанры: ' + str(row['types_film'])
+            rating = 'Рейтинг: ' + str(row['rating_films'])
+            year = 'Год выпуска: ' + str(row['years_films'])
+            link = 'Узнать больше: ' + str(row['links_films'])
+            info = [name, types, rating, year, link]
+            return '\n'.join(info)
+
+
+def add_book_list(user_id, list_title, book_names):
+    csv_data = pd.read_csv("wishlist_books.csv")
+    csv_copy = csv_data.copy()
+    list_num = 1
+    for index, row in csv_copy.iterrows():
+        if row['user_id'] == str(user_id):
+            list_num += 1
+    books_dict = {}
+    csv_books = pd.read_csv("micro_books.csv")
+    for book in book_names:
+        for index, row in csv_books.iterrows():
+            if row['id_books'] == str(book):
+                books_dict[row['id_books']] = row['names_books']
+                break
+    if len(books_dict):
+        new_row = {'user_id': user_id, 'list_book_number': str(list_num), 'list_book_title': list_title,
+                   'list_book_names': books_dict}
+        new_data = pd.DataFrame([new_row])
+        combined_data = pd.concat([csv_data, new_data], ignore_index=True)
+        combined_data[['user_id', 'list_book_number', 'list_book_title', 'list_book_names']].to_csv(
+            "wishlist_books.csv", index=False)
+        return True
+    return False
 
 
 def request(type, argc, argv, lock):
@@ -539,20 +657,28 @@ def request(type, argc, argv, lock):
             result = get_note_by_number(argv[1], argv[2])
         elif argc == 2 and argv[0] == 'dish_list':
             result = get_all_user_dish_lists(argv[1])
+        elif argc == 2 and argv[0] == 'film_list':
+            result = get_all_user_film_lists(argv[1])
         elif argc == 3 and argv[0] == 'dish_list':
             result = get_dish_list_by_number(argv[1], argv[2])
+        elif argc == 3 and argv[0] == 'film_list':
+            result = get_film_list_by_number(argv[1], argv[2])
         elif argc == 3 and argv[0] == 'dish_list_t':
             result = get_dish_list_by_title(argv[1], argv[2])
         elif argc == 1 and argv[0] == 'dishes':
             result = get_random_dishes()
+        elif argc == 1 and argv[0] == 'films':
+            result = get_random_films()
         elif argc == 2 and argv[0] == 'dishes':
             result = get_certain_dishes_by_words(argv[1])
+        elif argc == 2 and argv[0] == 'films':
+            result = find_films_by_tags(argv[1])
         elif argc == 2 and argv[0] == 'dish':
             result = get_dish_info(argv[1])
+        elif argc == 2 and argv[0] == 'film':
+            result = get_film_info(argv[1])
         elif argc == 2 and argv[0] == 'plot':
             result = show_recent_week_statistic(argv[1])
-        elif argc == 2 and argv[0] == 'film':
-            result = find_films_by_tags(argv[1])
         else:
             print("No such GET request")
     elif type == 'PUT':
@@ -569,6 +695,8 @@ def request(type, argc, argv, lock):
             result = add_film_list(argv[1], argv[2], argv[3])
         elif argc == 4 and argv[0] == 'dish_list_add':
             result = add_in_dish_list_by_number(argv[1], argv[2], argv[3])
+        elif argc == 4 and argv[0] == 'film_list_add':
+            result = add_in_film_list_by_number(argv[1], argv[2], argv[3])
         elif argc == 4 and argv[0] == 'dish_list_t':
             result = add_in_dish_list_by_title(argv[1], argv[2], argv[3])
         elif argc == 3 and argv[0] == 'calories':
@@ -588,12 +716,18 @@ def request(type, argc, argv, lock):
             result = delete_note_by_number(argv[1], argv[2])
         elif argc == 2 and argv[0] == 'dish_list':
             clean_all_user_dish_lists(argv[1])
+        elif argc == 2 and argv[0] == 'film_list':
+            clean_all_user_film_lists(argv[1])
         elif argc == 3 and argv[0] == 'dish_list':
             result = delete_dish_list_by_number(argv[1], argv[2])
+        elif argc == 3 and argv[0] == 'film_list':
+            result = delete_film_list_by_number(argv[1], argv[2])
         elif argc == 3 and argv[0] == 'dish_list_t':
             result = delete_dish_list_by_title(argv[1], argv[2])
         elif argc == 4 and argv[0] == 'dish_list':
             result = delete_in_dish_list_by_number(argv[1], argv[2], argv[3])
+        elif argc == 4 and argv[0] == 'film_list':
+            result = delete_in_film_list_by_number(argv[1], argv[2], argv[3])
         elif argc == 4 and argv[0] == 'dish_list_t':
             result = delete_in_dish_list_by_title(argv[1], argv[2], argv[3])
         else:
