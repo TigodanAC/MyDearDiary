@@ -109,13 +109,14 @@ def message_reply(message):
         if list_status.get(message.chat.id):
             del list_status[message.chat.id]
 
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=3)
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
         item_1 = types.KeyboardButton(text="Случайные фильмы (Мне повезёт!)")
-        item_2 = types.KeyboardButton(text="Найти фильмы")
-        item_3 = types.KeyboardButton(text="Узнать про фильм")
-        item_4 = types.KeyboardButton(text="Списки фильмов")
-        item_5 = types.KeyboardButton(text="В начало")
-        markup.add(item_1, item_2, item_3, item_4, item_5)
+        item_2 = types.KeyboardButton(text="Найти фильмы по названию")
+        item_3 = types.KeyboardButton(text="Найти фильмы по жанрам")
+        item_4 = types.KeyboardButton(text="Узнать про фильм")
+        item_5 = types.KeyboardButton(text="Списки фильмов")
+        item_6 = types.KeyboardButton(text="В начало")
+        markup.add(item_1, item_2, item_3, item_4, item_5, item_6)
         bot.send_message(message.chat.id, "Я к Вашим услугам!", reply_markup=markup)
 
     elif message.text == "Случайные фильмы (Мне повезёт!)":
@@ -123,10 +124,15 @@ def message_reply(message):
         image = request("GET", len(argv), argv, lock)
         bot.send_photo(message.chat.id, photo=image.getvalue())
 
-    elif message.text == "Найти фильмы":
-        last_messages[message.chat.id] = 'ffind'
+    elif message.text == "Найти фильмы по названию":
+        last_messages[message.chat.id] = 'film_by_words'
+        bot.send_message(message.chat.id, "Введите ключевые слова, по которым хотите искать фильмы, через запятую.\n"
+                                          "Например: Мстители, война бесконечности")
+
+    elif message.text == "Найти фильмы по жанрам":
+        last_messages[message.chat.id] = 'film_by_tags'
         bot.send_message(message.chat.id, "Введите жанры, по которым хотите искать фильмы, через запятую.\n"
-                                          "Например: Фэнтези, комедия, боевик")
+                                          "Например: Фэнтези, комедия, семейный")
 
     elif message.text == "Узнать про фильм":
         last_messages[message.chat.id] = 'finfo'
@@ -229,9 +235,9 @@ def message_reply(message):
         bot.send_message(message.chat.id, "Я к Вашим услугам!", reply_markup=markup)
 
     elif message.text == "Вывести все списки":
-        if list_names.get(message.chat.id) == 'f':
+        if list_status.get(message.chat.id) == 'f':
             arg = 'film_list'
-        elif list_names.get(message.chat.id) == 'd':
+        elif list_status.get(message.chat.id) == 'd':
             arg = 'dish_list'
         else:
             bot.send_message(message.chat.id, "Неизвестная команда")
@@ -241,9 +247,9 @@ def message_reply(message):
         bot.send_photo(message.chat.id, photo=image.getvalue())
 
     elif message.text == "Удалить все списки":
-        if list_names.get(message.chat.id) == 'f':
+        if list_status.get(message.chat.id) == 'f':
             arg = 'film_list'
-        elif list_names.get(message.chat.id) == 'd':
+        elif list_status.get(message.chat.id) == 'd':
             arg = 'dish_list'
         else:
             bot.send_message(message.chat.id, "Неизвестная команда")
@@ -332,9 +338,9 @@ def message_reply(message):
         else:
             bot.send_message(message.chat.id, "Неверный формат номера", reply_markup=markup_bad)
 
-    elif last_messages.get(message.chat.id) == 'ffind':
-        del last_messages[message.chat.id]
-        argv = ['films', message.text]
+    elif last_messages.get(message.chat.id) == 'film_by_words' or last_messages.get(message.chat.id) == 'film_by_tags':
+        arg = last_messages.pop(message.chat.id)
+        argv = [arg, message.text]
         image = request("GET", len(argv), argv, lock)
 
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
@@ -446,10 +452,10 @@ def message_reply(message):
         last_messages[message.chat.id] = 'lists'
 
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-        if list_names.get(message.chat.id) == 'f':
+        if list_status.get(message.chat.id) == 'f':
             item_1 = types.KeyboardButton(text="К спискам фильмов")
             text = "Введите номера фильмов, которые хотели бы добавить в список"
-        elif list_names.get(message.chat.id) == 'd':
+        elif list_status.get(message.chat.id) == 'd':
             item_1 = types.KeyboardButton(text="К спискам блюд")
             text = "Введите номера блюд, которые хотели бы добавить в список"
         else:
@@ -461,10 +467,10 @@ def message_reply(message):
 
     elif last_messages.get(message.chat.id) == 'lists':
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-        if list_names.get(message.chat.id) == 'f':
+        if list_status.get(message.chat.id) == 'f':
             item_1 = types.KeyboardButton(text="К спискам фильмов")
             arg = 'film_list'
-        elif list_names.get(message.chat.id) == 'd':
+        elif list_status.get(message.chat.id) == 'd':
             item_1 = types.KeyboardButton(text="К спискам блюд")
             arg = 'dish_list'
         else:
@@ -488,10 +494,10 @@ def message_reply(message):
 
     elif last_messages.get(message.chat.id) == 'add_to_list':
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-        if list_names.get(message.chat.id) == 'f':
+        if list_status.get(message.chat.id) == 'f':
             item_1 = types.KeyboardButton(text="К спискам фильмов")
             text = "Введите номера фильмов, которые хотели бы добавить в список"
-        elif list_names.get(message.chat.id) == 'd':
+        elif list_status.get(message.chat.id) == 'd':
             item_1 = types.KeyboardButton(text="К спискам блюд")
             text = "Введите номера блюд, которые хотели бы добавить в список"
         else:
@@ -509,11 +515,11 @@ def message_reply(message):
 
     elif last_messages.get(message.chat.id) == 'list_dish':
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-        if list_names.get(message.chat.id) == 'f':
+        if list_status.get(message.chat.id) == 'f':
             item_1 = types.KeyboardButton(text="К спискам фильмов")
             arg = 'film_list_add'
             text = "Фильмы успешно добавлены!"
-        elif list_names.get(message.chat.id) == 'd':
+        elif list_status.get(message.chat.id) == 'd':
             item_1 = types.KeyboardButton(text="К спискам блюд")
             arg = 'dish_list_add'
             text = "Блюда успешно добавлены!"
@@ -539,10 +545,10 @@ def message_reply(message):
     elif last_messages.get(message.chat.id) == 'read_list':
         markup_good = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
         markup_bad = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-        if list_names.get(message.chat.id) == 'f':
+        if list_status.get(message.chat.id) == 'f':
             item_1 = types.KeyboardButton(text="К спискам фильмов")
             arg = 'film_list'
-        elif list_names.get(message.chat.id) == 'd':
+        elif list_status.get(message.chat.id) == 'd':
             item_1 = types.KeyboardButton(text="К спискам блюд")
             arg = 'dish_list'
         else:
@@ -566,10 +572,10 @@ def message_reply(message):
 
     elif last_messages.get(message.chat.id) == 'delete_from_list':
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-        if list_names.get(message.chat.id) == 'f':
+        if list_status.get(message.chat.id) == 'f':
             item_1 = types.KeyboardButton(text="К спискам фильмов")
             text = "Введите номера фильмов, которые хотели бы удалить из списка"
-        elif list_names.get(message.chat.id) == 'd':
+        elif list_status.get(message.chat.id) == 'd':
             item_1 = types.KeyboardButton(text="К спискам блюд")
             text = "Введите номера блюд, которые хотели бы удалить из списка"
         else:
@@ -587,11 +593,11 @@ def message_reply(message):
 
     elif last_messages.get(message.chat.id) == 'remove_from_list':
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-        if list_names.get(message.chat.id) == 'f':
+        if list_status.get(message.chat.id) == 'f':
             item_1 = types.KeyboardButton(text="К спискам фильмов")
             arg = 'film_list'
             text = "Фильмы успешно удалены"
-        elif list_names.get(message.chat.id) == 'd':
+        elif list_status.get(message.chat.id) == 'd':
             item_1 = types.KeyboardButton(text="К спискам блюд")
             arg = 'dish_list'
             text = "Блюда успешно удалены"
@@ -617,10 +623,10 @@ def message_reply(message):
     elif last_messages.get(message.chat.id) == 'delete_list':
         markup_good = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
         markup_bad = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-        if list_names.get(message.chat.id) == 'f':
+        if list_status.get(message.chat.id) == 'f':
             item_1 = types.KeyboardButton(text="К спискам фильмов")
             arg = 'film_list'
-        elif list_names.get(message.chat.id) == 'd':
+        elif list_status.get(message.chat.id) == 'd':
             item_1 = types.KeyboardButton(text="К спискам блюд")
             arg = 'dish_list'
         else:

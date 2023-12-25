@@ -314,9 +314,10 @@ def get_certain_dishes_by_words(words):
                 dishes_list = new_data
             else:
                 dishes_list = pd.concat([dishes_list, new_data], ignore_index=True)
-    if len(dishes_list) > 50:
-        dishes_list = dishes_list.head(50)
-    if dishes_list.empty:
+    if len(dishes_list) > 10:
+        random_rows = random.sample(range(len(dishes_list)), 10)
+        dishes_list = dishes_list.iloc[random_rows]
+    elif dishes_list.empty:
         return False
     new_column_names = {'id_meals': 'Номер', 'meals_names': 'Название блюда', 'calories': 'Число калорий',
                         'proteins': 'Число белков', 'fats': 'Число жиров', 'carbohydrates': 'Число углеводов'}
@@ -557,6 +558,38 @@ def get_film_list_by_number(user_id, list_number):
     return False
 
 
+def get_certain_films_by_words(words):
+    csv_data = pd.read_csv("films.csv")
+    words = words.replace(",", " ")
+    word_list = words.split()
+    word_list = [word.lower() for word in word_list]
+    film_list = pd.DataFrame(columns=['names_films', 'types_film', 'rating_films', 'years_films'])
+    for index, row in csv_data.iterrows():
+        counter = 0
+        for word in word_list:
+            if word in row['names_films'].lower():
+                counter += 1
+        if counter == len(word_list):
+            new_data = pd.DataFrame([row])
+            new_data.drop('links_films', axis=1, inplace=True)
+            if film_list.empty:
+                film_list = new_data
+            else:
+                film_list = pd.concat([film_list, new_data], ignore_index=True)
+    if len(film_list) > 10:
+        random_rows = random.sample(range(len(film_list)), 10)
+        film_list = film_list.iloc[random_rows]
+    elif film_list.empty:
+        return False
+    new_column_names = {'id_films': 'Номер', 'names_films': 'Название', 'types_film': 'Жанры',
+                        'rating_films': 'Рейтинг', 'years_films': 'Год выпуска'}
+    df = film_list.rename(columns=new_column_names).reset_index(drop=True)
+    df_styled = df.style.set_properties(**{'text-align': 'center'}).hide()
+    buf = BytesIO()
+    dfi.export(df_styled, buf)
+    return buf
+
+
 def find_films_by_tags(tags):
     csv_data = pd.read_csv("films.csv")
     tags = tags.replace(",", " ")
@@ -578,9 +611,10 @@ def find_films_by_tags(tags):
                 film_list = new_data
             else:
                 film_list = pd.concat([film_list, new_data], ignore_index=True)
-    if len(film_list) > 50:
-        film_list = film_list.head(50)
-    if film_list.empty:
+    if len(film_list) > 10:
+        random_rows = random.sample(range(len(film_list)), 10)
+        film_list = film_list.iloc[random_rows]
+    elif film_list.empty:
         return False
     new_column_names = {'id_films': 'Номер', 'names_films': 'Название', 'types_film': 'Жанры',
                         'rating_films': 'Рейтинг', 'years_films': 'Год выпуска'}
@@ -595,6 +629,7 @@ def get_random_films():
     csv_data = pd.read_csv("films.csv")
     random_rows = random.sample(range(len(csv_data)), 10)
     need_df = csv_data.iloc[random_rows]
+    need_df.drop('links_films', axis=1, inplace=True)
     new_column_names = {'id_films': 'Номер', 'names_films': 'Название', 'types_film': 'Жанры',
                         'rating_films': 'Рейтинг', 'years_films': 'Год выпуска'}
     df = need_df.rename(columns=new_column_names).reset_index(drop=True)
@@ -667,7 +702,9 @@ def request(type, argc, argv, lock):
             result = get_random_films()
         elif argc == 2 and argv[0] == 'dishes':
             result = get_certain_dishes_by_words(argv[1])
-        elif argc == 2 and argv[0] == 'films':
+        elif argc == 2 and argv[0] == 'film_by_words':
+            result = get_certain_films_by_words(argv[1])
+        elif argc == 2 and argv[0] == 'film_by_tags':
             result = find_films_by_tags(argv[1])
         elif argc == 2 and argv[0] == 'dish':
             result = get_dish_info(argv[1])
