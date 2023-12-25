@@ -12,6 +12,7 @@ links_films = []
 soup = BeautifulSoup(requests.get('https://baskino.org/films/').text, 'lxml')
 quotes = soup.find('div', class_='navigation ignore-select').find_all('a')[-2].text
 pages_size = int(quotes)
+
 for j in range(0, pages_size):
     print(j)
     url = "https://baskino.org/films/" + "page/" + str(j)
