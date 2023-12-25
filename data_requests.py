@@ -146,7 +146,6 @@ def add_in_dish_list_by_number(user_id, list_number, dish_numbers):
     return flag
 
 
-# Непонятно, что делать в случае нескольких списков с одним названием"
 def add_in_dish_list_by_title(user_id, list_title, dish_numbers):
     csv_data = pd.read_csv("wishlist_dishes.csv")
     csv_dishes = pd.read_csv("dishes.csv")
@@ -180,7 +179,6 @@ def delete_dish_list_by_number(user_id, list_number):
     return False
 
 
-# Непонятно, что делать в случае нескольких списков с одним названием
 def delete_dish_list_by_title(user_id, list_title):
     csv_data = pd.read_csv("wishlist_dishes.csv")
     list_num_to_update = None
@@ -213,7 +211,6 @@ def delete_in_dish_list_by_number(user_id, list_number, dish_numbers):
     return flag
 
 
-# Непонятно, что делать в случае нескольких списков с одним названием
 def delete_in_dish_list_by_title(user_id, list_title, dish_numbers):
     csv_data = pd.read_csv("wishlist_dishes.csv")
     flag = False
@@ -263,7 +260,6 @@ def get_dish_list_by_number(user_id, list_number):
     return False
 
 
-# Непонятно, что делать в случае нескольких списков с одним названием
 def get_dish_list_by_title(user_id, list_title):
     csv_data = pd.read_csv("wishlist_dishes.csv")
     dishes_list = []
