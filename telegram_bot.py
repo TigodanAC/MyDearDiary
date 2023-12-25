@@ -106,8 +106,7 @@ def message_reply(message):
             del last_messages[message.chat.id]
         if list_names.get(message.chat.id):
             del list_names[message.chat.id]
-        if list_status.get(message.chat.id):
-            del list_status[message.chat.id]
+        list_status[message.chat.id] = 'f'
 
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
         item_1 = types.KeyboardButton(text="Случайные фильмы (Мне повезёт!)")
@@ -163,8 +162,7 @@ def message_reply(message):
             del last_messages[message.chat.id]
         if list_names.get(message.chat.id):
             del list_names[message.chat.id]
-        if list_status.get(message.chat.id):
-            del list_status[message.chat.id]
+        list_status[message.chat.id] = 'd'
 
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=3)
         item_1 = types.KeyboardButton(text="Случайные блюда (Мне повезёт!)")
@@ -203,7 +201,7 @@ def message_reply(message):
 
     elif message.text == "Закончить день":
         argv = ['calories', message.from_user.id]
-        bot.send_message(message.chat.id, request("PUT", len(argv), argv), lock)
+        bot.send_message(message.chat.id, request("PUT", len(argv), argv, lock))
 
     elif message.text == "Мои показатели за последние 7 дней":
         argv = ['plot', message.from_user.id]
